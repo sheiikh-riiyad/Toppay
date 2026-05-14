@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Toppay",
-    "slug": "Toppay",
+    "slug": "toppay-official",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,9 +9,18 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.toppay.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSContactsUsageDescription": "Toppay uses your contacts to help you choose recipients for money transfers."
+      }
     },
     "android": {
+      "package": "com.toppay.app",
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "READ_CONTACTS"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -38,11 +47,20 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "@react-native-google-signin/google-signin",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5339104f-4fd7-48a5-82a4-79e76c0f56a2"
+      }
+    },
+    "owner": "toppay-mobile"
   }
 }

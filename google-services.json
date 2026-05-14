@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "372853268456",
+    "project_id": "toppay-2bd66",
+    "storage_bucket": "toppay-2bd66.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:372853268456:android:893449e45c4b923b50ce5d",
+        "android_client_info": {
+          "package_name": "com.toppay.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "372853268456-e4slijlgespqdjv360m892pl4c8m4v4r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.toppay.app",
+            "certificate_hash": "f0aaac0a56823f618ee83038575ffb9980856b6f"
+          }
+        },
+        {
+          "client_id": "372853268456-0h5cr7jqn2fef87r3odfkbv8ejgjo0n6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjzxaz26ZKrMFKu5yUaPLQzCZx9Y06nyY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "372853268456-0h5cr7jqn2fef87r3odfkbv8ejgjo0n6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
