@@ -153,7 +153,27 @@
     "pinMismatch": "PINs do not match",
     "pinRequired": "Enter and confirm a 4-digit PIN",
     "useAnotherAccount": "Use another Google account",
-    "securityNote": "Your Google account creates the wallet profile first. After setup, use your 4-digit PIN to unlock the app."
+    "securityNote": "Your Google account creates the wallet profile first. After setup, use your 4-digit PIN to unlock the app.",
+    "needSupport": "Need Support?"
+  },
+  "support": {
+    "title": "Support",
+    "subtitle": "Tell us what happened and we will help through WhatsApp.",
+    "whatsappTitle": "WhatsApp support",
+    "chatNow": "Chat now on WhatsApp",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "Enter your email address",
+    "problemLabel": "Your problem",
+    "problemPlaceholder": "Write your problem here",
+    "sendWhatsapp": "Send to WhatsApp",
+    "requiredError": "Enter your email and problem first.",
+    "emailError": "Enter a valid email address.",
+    "openFailed": "Could not open WhatsApp. Please try again.",
+    "opened": "WhatsApp opened with your support message.",
+    "note": "Your message will open in WhatsApp. Review it there before sending.",
+    "noEmail": "Not provided",
+    "directMessage": "Hello Toppay Support,\nI need help with my account.\nEmail: {{email}}",
+    "whatsappMessage": "Toppay Support Request\nEmail: {{email}}\nProblem: {{problem}}"
   },
   "sendMoney": {
     "title": "Send Money",

@@ -153,7 +153,27 @@
     "pinMismatch": "পিন মিলছে না",
     "pinRequired": "৪ ডিজিট পিন লিখে নিশ্চিত করুন",
     "useAnotherAccount": "অন্য Google অ্যাকাউন্ট ব্যবহার করুন",
-    "securityNote": "প্রথমে Google অ্যাকাউন্ট দিয়ে ওয়ালেট প্রোফাইল তৈরি হবে। সেটআপের পর ৪ ডিজিট পিন দিয়ে অ্যাপ আনলক করুন।"
+    "securityNote": "প্রথমে Google অ্যাকাউন্ট দিয়ে ওয়ালেট প্রোফাইল তৈরি হবে। সেটআপের পর ৪ ডিজিট পিন দিয়ে অ্যাপ আনলক করুন।",
+    "needSupport": "সাপোর্ট দরকার?"
+  },
+  "support": {
+    "title": "সাপোর্ট",
+    "subtitle": "কি সমস্যা হয়েছে লিখুন, আমরা WhatsApp-এ সাহায্য করব।",
+    "whatsappTitle": "WhatsApp সাপোর্ট",
+    "chatNow": "এখনই WhatsApp-এ চ্যাট করুন",
+    "emailLabel": "ইমেইল ঠিকানা",
+    "emailPlaceholder": "আপনার ইমেইল লিখুন",
+    "problemLabel": "আপনার সমস্যা",
+    "problemPlaceholder": "আপনার সমস্যা এখানে লিখুন",
+    "sendWhatsapp": "WhatsApp-এ পাঠান",
+    "requiredError": "প্রথমে ইমেইল এবং সমস্যা লিখুন।",
+    "emailError": "সঠিক ইমেইল ঠিকানা লিখুন।",
+    "openFailed": "WhatsApp খোলা যায়নি। আবার চেষ্টা করুন।",
+    "opened": "আপনার সাপোর্ট মেসেজসহ WhatsApp খোলা হয়েছে।",
+    "note": "আপনার মেসেজ WhatsApp-এ খুলবে। পাঠানোর আগে সেখানে দেখে নিন।",
+    "noEmail": "দেওয়া হয়নি",
+    "directMessage": "Hello Toppay Support,\nI need help with my account.\nEmail: {{email}}",
+    "whatsappMessage": "Toppay Support Request\nEmail: {{email}}\nProblem: {{problem}}"
   },
   "sendMoney": {
     "title": "টাকা পাঠান",

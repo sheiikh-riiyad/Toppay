@@ -35,14 +35,14 @@ function RootNavigator() {
       return;
     }
 
-    const isAuthRoute = segments[0] === 'login';
+    const isPublicRoute = segments[0] === 'login' || segments[0] === 'support';
 
-    if (!isAuthenticated && !isAuthRoute) {
+    if (!isAuthenticated && !isPublicRoute) {
       router.replace('/login');
       return;
     }
 
-    if (isAuthenticated && isAuthRoute) {
+    if (isAuthenticated && segments[0] === 'login') {
       router.replace('/(tabs)');
     }
   }, [isAuthenticated, isReady, router, segments]);
@@ -50,6 +50,7 @@ function RootNavigator() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="login" />
+      <Stack.Screen name="support" />
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="send-money" />
       <Stack.Screen name="cash-out" />

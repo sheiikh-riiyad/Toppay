@@ -35,6 +35,7 @@ const accountRows = [
   {
     titleKey: 'profilePage.supportCenter',
     metaKey: 'profilePage.ticketsAndChat',
+    route: '/support' as const,
     icon: 'support-agent' as WalletIconName,
     color: palette.amber,
     tone: palette.softAmber,

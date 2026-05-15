@@ -417,6 +417,20 @@ export default function LoginScreen() {
           <MaterialIcons name="security" size={19} color={palette.primary} />
           <Text style={styles.securityText}>{t('login.securityNote')}</Text>
         </View>
+
+        <Pressable
+          style={({ pressed }) => [
+            styles.supportButton,
+            pressed && styles.supportButtonPressed,
+            isLoginBusy && styles.supportButtonDisabled,
+          ]}
+          disabled={isLoginBusy}
+          onPress={() => router.push('/support')}
+          accessibilityRole="button">
+          <MaterialIcons name="support-agent" size={20} color={palette.primary} />
+          <Text style={styles.supportButtonText}>{t('login.needSupport')}</Text>
+          <MaterialIcons name="chevron-right" size={20} color={palette.primary} />
+        </Pressable>
       </ScrollView>
 
       {isLoginBusy ? (
@@ -811,6 +825,28 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 17,
+  },
+  supportButton: {
+    minHeight: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: palette.primary,
+    backgroundColor: palette.surface,
+  },
+  supportButtonPressed: {
+    backgroundColor: palette.softGreen,
+  },
+  supportButtonDisabled: {
+    opacity: 0.55,
+  },
+  supportButtonText: {
+    color: palette.primary,
+    fontSize: 14,
+    fontWeight: '900',
   },
   progressOverlay: {
     ...StyleSheet.absoluteFillObject,
