@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import WalletMiniLogo from '@/components/WalletMiniLogo';
 import { useAuth } from '@/contexts/auth';
 import { useBonusRate } from '@/hooks/use-bonus-rate';
 import { useWalletData } from '@/hooks/use-wallet-data';
@@ -194,9 +195,7 @@ export default function SendMoneyConfirmationScreen() {
             <View style={styles.methodBadge}>
               {method && (
                 <>
-                  <View style={[styles.methodBadgeMark, { backgroundColor: method.color }]}>
-                    <Text style={styles.methodBadgeMarkText}>{method.mark}</Text>
-                  </View>
+                  <WalletMiniLogo color={method.color} mark={method.mark} name={method.name} size={32} />
                   <Text style={styles.methodBadgeText}>{method.name}</Text>
                 </>
               )}
@@ -419,18 +418,6 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 6,
-  },
-  methodBadgeMark: {
-    width: 32,
-    height: 32,
-    borderRadius: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  methodBadgeMarkText: {
-    color: palette.surface,
-    fontSize: 11,
-    fontWeight: '900',
   },
   methodBadgeText: {
     color: palette.ink,

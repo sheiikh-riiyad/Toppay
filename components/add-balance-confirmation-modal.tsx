@@ -3,6 +3,8 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useTranslation } from 'react-i18next';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import WalletMiniLogo from '@/components/WalletMiniLogo';
+
 interface AddBalanceConfirmationModalProps {
   visible: boolean;
   selectedMethod: AddBalanceMethod;
@@ -42,13 +44,12 @@ export function AddBalanceConfirmationModal({
               <View style={styles.reviewSection}>
                 <Text style={styles.sectionLabel}>{t('generic.paymentMethod')}</Text>
                 <View style={styles.methodRow}>
-                  <View
-                    style={[
-                      styles.methodBadge,
-                      { backgroundColor: selectedMethod.color },
-                    ]}>
-                    <Text style={styles.methodBadgeText}>{selectedMethod.mark}</Text>
-                  </View>
+                  <WalletMiniLogo
+                    color={selectedMethod.color}
+                    mark={selectedMethod.mark}
+                    name={selectedMethod.name}
+                    size={48}
+                  />
                   <View style={styles.methodInfo}>
                     <Text style={styles.methodName}>{selectedMethod.name}</Text>
                     <Text style={styles.methodType}>{t(selectedMethod.type === 'Mobile wallet' ? 'methodTypes.mobileWallet' : 'methodTypes.bankAccount')}</Text>
@@ -179,18 +180,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-  },
-  methodBadge: {
-    width: 48,
-    height: 48,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  methodBadgeText: {
-    color: palette.surface,
-    fontSize: 18,
-    fontWeight: '900',
   },
   methodInfo: {
     flex: 1,

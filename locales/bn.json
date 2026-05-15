@@ -175,6 +175,15 @@
     "directMessage": "Hello Toppay Support,\nI need help with my account.\nEmail: {{email}}",
     "whatsappMessage": "Toppay Support Request\nEmail: {{email}}\nProblem: {{problem}}"
   },
+  "appUpdate": {
+    "title": "আপডেট আছে",
+    "body": "GitHub থেকে নতুন Toppay APK পাওয়া যাচ্ছে। সর্বশেষ ভার্সন পেতে এটি ডাউনলোড করে ইনস্টল করুন।",
+    "versionLine": "বর্তমান {{current}} -> নতুন {{latest}}",
+    "notesTitle": "রিলিজ নোট",
+    "later": "পরে",
+    "updateNow": "আপডেট",
+    "opening": "খোলা হচ্ছে..."
+  },
   "sendMoney": {
     "title": "টাকা পাঠান",
     "recipient": "প্রাপক",

@@ -175,6 +175,15 @@
     "directMessage": "Hello Toppay Support,\nI need help with my account.\nEmail: {{email}}",
     "whatsappMessage": "Toppay Support Request\nEmail: {{email}}\nProblem: {{problem}}"
   },
+  "appUpdate": {
+    "title": "Update available",
+    "body": "A newer Toppay APK is available from GitHub. Download and install it to get the latest version.",
+    "versionLine": "Current {{current}} -> Latest {{latest}}",
+    "notesTitle": "Release notes",
+    "later": "Later",
+    "updateNow": "Update",
+    "opening": "Opening..."
+  },
   "sendMoney": {
     "title": "Send Money",
     "recipient": "Recipient",

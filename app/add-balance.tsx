@@ -15,6 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddBalanceConfirmationModal } from '@/components/add-balance-confirmation-modal';
+import WalletMiniLogo from '@/components/WalletMiniLogo';
 import { useAuth } from '@/contexts/auth';
 import { usePaymentAccount } from '@/hooks/use-payment-account';
 import { useWalletData } from '@/hooks/use-wallet-data';
@@ -204,9 +205,7 @@ export default function AddBalanceScreen() {
                   style={[styles.methodCard, active && styles.methodCardActive]}
                   onPress={() => setSelectedMethod(method)}
                   accessibilityRole="button">
-                  <View style={[styles.methodMark, { backgroundColor: method.color }]}>
-                    <Text style={styles.methodMarkText}>{method.mark}</Text>
-                  </View>
+                  <WalletMiniLogo color={method.color} mark={method.mark} name={method.name} size={38} />
                   <Text style={styles.methodName}>{method.name}</Text>
                 </Pressable>
               );
@@ -588,18 +587,6 @@ const styles = StyleSheet.create({
   methodCardActive: {
     borderColor: palette.primary,
     backgroundColor: palette.softGreen,
-  },
-  methodMark: {
-    width: 38,
-    height: 38,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  methodMarkText: {
-    color: palette.surface,
-    fontSize: 13,
-    fontWeight: '900',
   },
   methodName: {
     color: palette.ink,

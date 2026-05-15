@@ -5,6 +5,7 @@ import React, { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import '@/i18n';
+import { AppUpdatePrompt } from '@/components/AppUpdatePrompt';
 import { AuthProvider, useAuth } from '@/contexts/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -19,6 +20,7 @@ export default React.memo(function RootLayout() {
     <AuthProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <RootNavigator />
+        <AppUpdatePrompt />
         <StatusBar style="auto" />
       </ThemeProvider>
     </AuthProvider>

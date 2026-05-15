@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import WalletMiniLogo from '@/components/WalletMiniLogo';
 import { useAuth } from '@/contexts/auth';
 import { useBonusRate } from '@/hooks/use-bonus-rate';
 import { useDeviceContacts } from '@/hooks/use-device-contacts';
@@ -134,9 +135,7 @@ export default function SendMoneyScreen() {
                   style={[styles.methodCard, active && styles.methodCardActive]}
                   onPress={() => setSelectedMethod(method)}
                   accessibilityRole="button">
-                  <View style={[styles.methodMark, { backgroundColor: method.color }]}>
-                    <Text style={styles.methodMarkText}>{method.mark}</Text>
-                  </View>
+                  <WalletMiniLogo color={method.color} mark={method.mark} name={method.name} size={40} />
                   <Text style={styles.methodName}>{method.name}</Text>
                 </Pressable>
               );
@@ -619,18 +618,6 @@ const styles = StyleSheet.create({
     borderColor: palette.primary,
     borderWidth: 2,
     backgroundColor: palette.surfaceAlt,
-  },
-  methodMark: {
-    width: 40,
-    height: 40,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  methodMarkText: {
-    color: palette.surface,
-    fontSize: 12,
-    fontWeight: '900',
   },
   methodName: {
     color: palette.ink,
