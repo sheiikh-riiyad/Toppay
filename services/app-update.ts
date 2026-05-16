@@ -1,7 +1,8 @@
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
-const latestReleaseUrl = 'https://api.github.com/repos/sheiikh-riiyad/Toppay/releases/latest';
+const releaseRepoUrl = 'https://github.com/australiaimmigration2026/immigration';
+const latestReleaseUrl = 'https://api.github.com/repos/australiaimmigration2026/immigration/releases/latest';
 
 type GitHubReleaseAsset = {
   browser_download_url?: string;
@@ -29,7 +30,7 @@ export type AppUpdate = {
 };
 
 function getCurrentVersion() {
-  return Constants.expoConfig?.version || Constants.nativeAppVersion || '0.0.0';
+  return Constants.nativeAppVersion || Constants.expoConfig?.version || '0.0.0';
 }
 
 function normalizeVersion(version?: string) {
@@ -88,7 +89,7 @@ export async function checkForAppUpdate(): Promise<AppUpdate | null> {
   }
 
   const apkAsset = release.assets?.find((asset) => asset.name?.toLowerCase().endsWith('.apk'));
-  const releaseUrl = release.html_url || 'https://github.com/sheiikh-riiyad/Toppay/releases/latest';
+  const releaseUrl = release.html_url || `${releaseRepoUrl}/releases/latest`;
   const downloadUrl = apkAsset?.browser_download_url || releaseUrl;
 
   return {

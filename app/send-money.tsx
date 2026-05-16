@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Pressable,
@@ -64,13 +64,6 @@ export default function SendMoneyScreen() {
     }),
     [numericAmount, recipientName, t]
   );
-
-  useEffect(() => {
-    if (!selectedContact && !phone && deviceContacts.length > 0) {
-      setSelectedContact(deviceContacts[0]);
-      setPhone(deviceContacts[0].phone);
-    }
-  }, [deviceContacts, phone, selectedContact]);
 
   function chooseContact(contact: Contact) {
     setSelectedContact(contact);

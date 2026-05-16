@@ -55,7 +55,7 @@ export default function CashOutScreen() {
   const { bonusRate } = useBonusRate('cashout');
   const [selectedMethod, setSelectedMethod] = useState<CashOutMethod>(cashOutMethods[0]);
   const { pendingTransactions, summary } = useWalletData(account?.uid);
-  const [receiverAccount, setReceiverAccount] = useState('01710 220 443');
+  const [receiverAccount, setReceiverAccount] = useState('');
   const [amount, setAmount] = useState('5000');
   const [note, setNote] = useState('Urgent payout request');
 

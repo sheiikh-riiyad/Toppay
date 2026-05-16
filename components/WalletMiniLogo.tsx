@@ -1,6 +1,11 @@
+import { Image } from 'expo-image';
 import { StyleProp, StyleSheet, Text, View, ViewStyle } from 'react-native';
 
 import { palette } from '@/constants/toppay';
+
+const bkashLogo = require('../BKash-bKash2-Logo.wine.svg') as number;
+const nagadLogo = require('../Nagad.svg') as number;
+const rocketLogo = require('../Rocket.svg') as number;
 
 type WalletMiniLogoProps = {
   color: string;
@@ -12,19 +17,19 @@ type WalletMiniLogoProps = {
 
 const walletLogos = {
   bkash: {
-    label: 'bKash',
-    background: '#D62872',
-    accent: '#FCE7F0',
+    source: bkashLogo,
+    borderColor: '#F8D2E1',
+    paddingRatio: 0.08,
   },
   nagad: {
-    label: 'Nagad',
-    background: '#F05A28',
-    accent: '#FFF1E8',
+    source: nagadLogo,
+    borderColor: '#FCE1CC',
+    paddingRatio: 0.1,
   },
   rocket: {
-    label: 'Rocket',
-    background: '#6D3A9C',
-    accent: '#F0E8F8',
+    source: rocketLogo,
+    borderColor: '#E6DAF0',
+    paddingRatio: 0.08,
   },
 };
 
@@ -54,8 +59,6 @@ export default function WalletMiniLogo({
   style,
 }: WalletMiniLogoProps) {
   const walletLogo = getWalletLogo(name);
-  const fontSize = Math.max(8, Math.round(size * 0.24));
-  const accentSize = Math.max(8, Math.round(size * 0.27));
 
   if (!walletLogo) {
     return (
@@ -77,6 +80,9 @@ export default function WalletMiniLogo({
     );
   }
 
+  const padding = Math.round(size * walletLogo.paddingRatio);
+  const imageSize = Math.max(1, size - padding * 2);
+
   return (
     <View
       style={[
@@ -85,28 +91,16 @@ export default function WalletMiniLogo({
           width: size,
           height: size,
           borderRadius: 8,
-          backgroundColor: walletLogo.background,
+          backgroundColor: palette.surface,
+          borderColor: walletLogo.borderColor,
         },
         style,
       ]}>
-      <View
-        style={[
-          styles.accent,
-          {
-            width: accentSize,
-            height: accentSize,
-            borderRadius: Math.round(accentSize / 2),
-            backgroundColor: walletLogo.accent,
-          },
-        ]}
+      <Image
+        contentFit="contain"
+        source={walletLogo.source}
+        style={{ width: imageSize, height: imageSize }}
       />
-      <Text
-        adjustsFontSizeToFit
-        minimumFontScale={0.72}
-        numberOfLines={1}
-        style={[styles.brandText, { fontSize }]}>
-        {walletLogo.label}
-      </Text>
     </View>
   );
 }
@@ -114,20 +108,9 @@ export default function WalletMiniLogo({
 const styles = StyleSheet.create({
   logo: {
     alignItems: 'center',
+    borderWidth: 1,
     justifyContent: 'center',
     overflow: 'hidden',
-  },
-  accent: {
-    position: 'absolute',
-    right: -3,
-    top: -3,
-    opacity: 0.36,
-  },
-  brandText: {
-    width: '92%',
-    color: palette.surface,
-    fontWeight: '900',
-    textAlign: 'center',
   },
   fallbackText: {
     color: palette.surface,
