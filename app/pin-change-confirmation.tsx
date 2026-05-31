@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Pressable,
@@ -13,26 +13,42 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { palette } from '@/constants/toppay';
+import { useAuth } from '@/contexts/auth';
+import { useSecureActionPin } from '@/hooks/use-secure-action-pin';
 
 export default function PinChangeConfirmationScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { t } = useTranslation();
+  const { changePin } = useAuth();
+  const verifySecureActionPin = useSecureActionPin();
+  const newPin = params.newPin as string;
 
   const [pin, setPin] = useState('');
   const [pressProgress, setPressProgress] = useState(0);
   const pressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const submitLockRef = useRef(false);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
 
-  const canConfirm = pin.length === 4;
+  const canConfirm = pin.length === 4 && !isSubmitting;
+
+  useEffect(() => () => {
+    if (pressTimerRef.current) {
+      clearInterval(pressTimerRef.current);
+    }
+  }, []);
 
   function handlePinChange(text: string) {
     if (text.length <= 4 && /^\d*$/.test(text)) {
       setPin(text);
+      setSubmitError('');
     }
   }
 
   function handlePressIn() {
-    if (!canConfirm) return;
+    if (!canConfirm || submitLockRef.current || pressTimerRef.current) return;
 
     setIsConfirming(true);
     let progress = 0;
@@ -43,7 +59,9 @@ export default function PinChangeConfirmationScreen() {
 
       if (progress >= 100) {
         clearInterval(pressTimerRef.current!);
-        handleConfirmation();
+        pressTimerRef.current = null;
+        setIsConfirming(false);
+        void handleConfirmation();
       }
     }, 20);
   }
@@ -57,9 +75,31 @@ export default function PinChangeConfirmationScreen() {
     setPressProgress(0);
   }
 
-  function handleConfirmation() {
-    // Navigate to success page
-    router.push('/pin-change-submitted');
+  async function handleConfirmation() {
+    if (submitLockRef.current) {
+      return;
+    }
+
+    const pinVerification = await verifySecureActionPin(pin);
+    if (!pinVerification.ok) {
+      setPin('');
+      setPressProgress(0);
+      setSubmitError(pinVerification.message);
+      return;
+    }
+
+    submitLockRef.current = true;
+    setIsSubmitting(true);
+
+    try {
+      await changePin(newPin);
+      router.replace('/pin-change-submitted');
+    } catch {
+      submitLockRef.current = false;
+      setIsSubmitting(false);
+      setPressProgress(0);
+      setSubmitError(t('pinPage.changeFailed'));
+    }
   }
 
   return (
@@ -153,13 +193,18 @@ export default function PinChangeConfirmationScreen() {
             <View style={styles.confirmButtonContent}>
               <MaterialIcons name="security" size={20} color={palette.surface} />
               <Text style={styles.confirmButtonText}>
-                {pressProgress > 0 ? `${Math.round(pressProgress)}%` : t('generic.holdToConfirm')}
+                {isSubmitting
+                  ? t('common.loading')
+                  : pressProgress > 0
+                    ? `${Math.round(pressProgress)}%`
+                    : t('generic.holdToConfirm')}
               </Text>
             </View>
           </Pressable>
-          {!canConfirm && (
+          {pin.length !== 4 && !isSubmitting ? (
             <Text style={styles.pinWarning}>{t('pinPage.pinWarning')}</Text>
-          )}
+          ) : null}
+          {submitError ? <Text style={styles.pinWarning}>{submitError}</Text> : null}
         </View>
       </ScrollView>
     </SafeAreaView>

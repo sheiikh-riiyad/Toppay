@@ -1,14 +1,25 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { formatCurrency, palette, type WalletIconName } from '@/constants/toppay';
 import { useAuth } from '@/contexts/auth';
+import { useSavedPaymentMethods } from '@/hooks/use-saved-payment-methods';
 import { useWalletData } from '@/hooks/use-wallet-data';
 
-const accountRows = [
+type AccountRow = {
+  color: string;
+  icon: WalletIconName;
+  metaKey: string;
+  metaOptions?: Record<string, number>;
+  route?: Href;
+  titleKey: string;
+  tone: string;
+};
+
+const accountRows: AccountRow[] = [
   {
     titleKey: 'profilePage.personalInformation',
     metaKey: 'profilePage.nidVerified',
@@ -27,7 +38,7 @@ const accountRows = [
   {
     titleKey: 'profilePage.cardsBanks',
     metaKey: 'profilePage.linkedAccounts',
-    metaOptions: { count: 2 },
+    route: '/payment-methods' as Href,
     icon: 'credit-card' as WalletIconName,
     color: palette.coral,
     tone: palette.softCoral,
@@ -46,6 +57,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { account, logout } = useAuth();
+  const { paymentMethods } = useSavedPaymentMethods(account?.uid);
   const { summary } = useWalletData(account?.uid);
   const profileName = account?.name || t('profilePage.defaultName');
   const profileEmail = account?.email || t('profilePage.noEmail');
@@ -137,7 +149,9 @@ export default function ProfileScreen() {
               </View>
               <View style={styles.accountCopy}>
                 <Text style={styles.accountTitle}>{t(row.titleKey)}</Text>
-                <Text style={styles.accountMeta}>{t(row.metaKey, row.metaOptions)}</Text>
+                <Text style={styles.accountMeta}>
+                  {t(row.metaKey, row.titleKey === 'profilePage.cardsBanks' ? { count: paymentMethods.length } : row.metaOptions)}
+                </Text>
               </View>
               <MaterialIcons name="chevron-right" size={24} color={palette.muted} />
             </Pressable>

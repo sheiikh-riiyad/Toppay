@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AppLogo from '@/components/AppLogo';
 import LanguageToggle from '@/components/LanguageToggle';
 import { useAuth } from '@/contexts/auth';
 import { useWalletData } from '@/hooks/use-wallet-data';
@@ -147,9 +148,7 @@ export default function HomeScreen() {
         <View style={styles.header}>
           <View>
             <View style={styles.logoRow}>
-              <View style={styles.logoMark}>
-                <Text style={styles.logoLetter}>T</Text>
-              </View>
+              <AppLogo size={32} />
               <Text style={styles.brand}>Toppay</Text>
             </View>
             <Text style={styles.greeting}>{t('home.greeting', { name: firstName })}</Text>
@@ -419,19 +418,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-  },
-  logoMark: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.primary,
-  },
-  logoLetter: {
-    color: palette.surface,
-    fontSize: 18,
-    fontWeight: '900',
   },
   brand: {
     color: palette.ink,

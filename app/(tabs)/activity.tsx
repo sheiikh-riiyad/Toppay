@@ -1,5 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,7 +16,16 @@ import {
 } from '@/constants/toppay';
 import { type WalletTransaction } from '@/services/wallet';
 
-const filters = ['filterAll', 'filterMoneyIn', 'filterMoneyOut'];
+type ActivityFilter = 'all' | 'cashIn' | 'cashOut';
+
+const filters: { key: ActivityFilter; labelKey: string }[] = [
+  { key: 'all', labelKey: 'filterAll' },
+  { key: 'cashIn', labelKey: 'filterMoneyIn' },
+  { key: 'cashOut', labelKey: 'filterMoneyOut' },
+];
+
+const cashInTypes: WalletTransaction['type'][] = ['add_balance'];
+const cashOutTypes: WalletTransaction['type'][] = ['send_money', 'mobile_recharge', 'bill_payment', 'cash_out'];
 
 function getTransactionIcon(transaction: WalletTransaction) {
   if (transaction.type === 'add_balance') {
@@ -86,13 +96,40 @@ export default function ActivityScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { account } = useAuth();
+  const [activeFilter, setActiveFilter] = useState<ActivityFilter>('all');
   const { doneTransactions } = useWalletData(account?.uid);
-  const firebaseTransactions = doneTransactions
+  const sourceTransactions = doneTransactions
     .filter((transaction) => transaction.type !== 'system')
-    .map(toActivityTransaction);
-  const transactions = firebaseTransactions.length > 0
+    .filter((transaction) => {
+      if (activeFilter === 'cashIn') {
+        return cashInTypes.includes(transaction.type);
+      }
+
+      if (activeFilter === 'cashOut') {
+        return cashOutTypes.includes(transaction.type);
+      }
+
+      return true;
+    });
+  const firebaseTransactions = sourceTransactions.map(toActivityTransaction);
+  const sampleCompletedTransactions = useMemo(
+    () => sampleTransactions.filter((transaction) => transaction.status === 'Completed'),
+    []
+  );
+  const sampleFilteredTransactions = sampleCompletedTransactions.filter((transaction) => {
+    if (activeFilter === 'cashIn') {
+      return transaction.amount > 0;
+    }
+
+    if (activeFilter === 'cashOut') {
+      return transaction.amount < 0;
+    }
+
+    return true;
+  });
+  const transactions = doneTransactions.length > 0
     ? firebaseTransactions
-    : sampleTransactions.filter((transaction) => transaction.status === 'Completed');
+    : sampleFilteredTransactions;
   const moneyIn = transactions
     .filter((transaction) => transaction.amount > 0)
     .reduce((total, transaction) => total + transaction.amount, 0);
@@ -143,22 +180,31 @@ export default function ActivityScreen() {
         </View>
 
         <View style={styles.filterRow}>
-          {filters.map((filter, index) => (
-            <Pressable
-              key={filter}
-              style={[styles.filterChip, index === 0 && styles.filterChipActive]}
-              accessibilityRole="button">
-              <Text style={[styles.filterText, index === 0 && styles.filterTextActive]}>
-                {t(`activityPage.${filter}`)}
-              </Text>
-            </Pressable>
-          ))}
+          {filters.map((filter) => {
+            const active = filter.key === activeFilter;
+
+            return (
+              <Pressable
+                key={filter.key}
+                style={[styles.filterChip, active && styles.filterChipActive]}
+                onPress={() => setActiveFilter(filter.key)}
+                accessibilityRole="button">
+                <Text style={[styles.filterText, active && styles.filterTextActive]}>
+                  {t(`activityPage.${filter.labelKey}`)}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
 
         <View style={styles.transactionList}>
-          {transactions.map((transaction) => (
-            <ActivityRow key={transaction.id} transaction={transaction} />
-          ))}
+          {transactions.length === 0 ? (
+            <Text style={styles.emptyText}>{t('activityPage.noFilteredTransactions')}</Text>
+          ) : (
+            transactions.map((transaction) => (
+              <ActivityRow key={transaction.id} transaction={transaction} />
+            ))
+          )}
         </View>
       </ScrollView>
     </SafeAreaView>
@@ -348,6 +394,17 @@ const styles = StyleSheet.create({
   },
   transactionList: {
     gap: 10,
+  },
+  emptyText: {
+    color: palette.muted,
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'center',
+    backgroundColor: palette.surface,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: palette.border,
+    padding: 18,
   },
   activityRow: {
     minHeight: 98,

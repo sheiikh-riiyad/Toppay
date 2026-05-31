@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth';
+import { useSecureActionPin } from '@/hooks/use-secure-action-pin';
 import { useWalletData } from '@/hooks/use-wallet-data';
 import { formatCurrency, mobileRechargeProviders, palette } from '@/constants/toppay';
 import { createMobileRechargeRequest } from '@/services/wallet';
@@ -25,6 +26,7 @@ export default function MobileRechargeConfirmationScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { account } = useAuth();
+  const verifySecureActionPin = useSecureActionPin();
   const { summary } = useWalletData(account?.uid);
   const params = useLocalSearchParams();
 
@@ -102,6 +104,14 @@ export default function MobileRechargeConfirmationScreen() {
 
     if (!account) {
       setSubmitError(t('login.googleFailed'));
+      return;
+    }
+
+    const pinVerification = await verifySecureActionPin(pin);
+    if (!pinVerification.ok) {
+      setPin('');
+      setPressProgress(0);
+      setSubmitError(pinVerification.message);
       return;
     }
 

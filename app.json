@@ -2,9 +2,9 @@
   "expo": {
     "name": "Toppay",
     "slug": "toppay-official",
-    "version": "1.0.5",
+    "version": "1.1.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./logo.png",
     "scheme": "toppay",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -18,34 +18,33 @@
     "android": {
       "package": "com.toppay.app",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 5,
+      "versionCode": 6,
       "permissions": [
-        "READ_CONTACTS"
+        "READ_CONTACTS",
+        "REQUEST_INSTALL_PACKAGES"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#081111",
+        "foregroundImage": "./logo.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./logo.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 200,
+          "image": "./first-logo.png",
+          "imageWidth": 260,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#081111",
           "dark": {
-            "backgroundColor": "#000000"
+            "backgroundColor": "#081111"
           }
         }
       ],

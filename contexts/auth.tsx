@@ -5,7 +5,7 @@ import {
     signInWithCredential,
     signInWithPopup,
 } from 'firebase/auth';
-import { doc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Platform } from 'react-native';
 
@@ -32,9 +32,20 @@ type UserProfileWrite = {
   authProvider: 'google.com';
   hasPin?: boolean;
   pin?: string;
+  pinBlockedUntilMs?: number;
+  pinFailedAttempts?: number;
   createdAt?: TimestampValue;
   updatedAt: TimestampValue;
 };
+
+type PinVerificationResult =
+  | { ok: true; verifiedPin: string }
+  | {
+      ok: false;
+      reason: 'blocked' | 'invalid' | 'missing-account' | 'verify-failed';
+      blockedUntilMs?: number;
+      remainingAttempts?: number;
+    };
 
 type AuthContextValue = {
   account: StoredAccount | null;
@@ -42,15 +53,19 @@ type AuthContextValue = {
   isAuthenticated: boolean;
   isReady: boolean;
   pendingGoogleAccount: GoogleAccount | null;
+  changePin: (newPin: string) => Promise<void>;
   connectGoogleAccount: (idToken?: string) => Promise<void>;
-  loginWithPin: (pin: string) => Promise<boolean>;
+  loginWithPin: (pin: string) => Promise<PinVerificationResult>;
   logout: () => void;
   resetAccount: () => Promise<void>;
   signInForDevelopment: () => void;
   setupWithGoogle: (pin: string) => Promise<void>;
+  verifyActionPin: (pin: string) => Promise<PinVerificationResult>;
 };
 
 const STORAGE_KEY = 'toppay.auth.account.v1';
+const MAX_PIN_ATTEMPTS = 3;
+const PIN_BLOCK_DURATION_MS = 10 * 60 * 1000;
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -143,6 +158,8 @@ async function saveUserProfile(account: GoogleAccount, pin?: string) {
     if (pin) {
       userData.hasPin = true;
       userData.pin = pin;
+      userData.pinFailedAttempts = 0;
+      userData.pinBlockedUntilMs = 0;
     }
 
     const batch = writeBatch(db);
@@ -195,6 +212,100 @@ async function getUserPin(uid: string): Promise<string | null> {
   }
 }
 
+function numberFromFirebase(value: unknown) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+async function writePinAttemptState(
+  uid: string,
+  data: {
+    pinBlockedAt?: TimestampValue;
+    pinBlockedUntilMs?: number;
+    pinFailedAttempts: number;
+  }
+) {
+  await setDoc(doc(db, 'users', uid), {
+    ...data,
+    updatedAt: serverTimestamp(),
+  }, { merge: true });
+}
+
+async function verifyStoredAccountPin(
+  storedAccount: StoredAccount,
+  pin: string
+): Promise<PinVerificationResult> {
+  try {
+    const userRef = doc(db, 'users', storedAccount.uid);
+    const userSnapshot = await getDoc(userRef);
+    const userData = userSnapshot.exists() ? userSnapshot.data() : {};
+    const blockedUntilMs = numberFromFirebase(userData.pinBlockedUntilMs);
+    const now = Date.now();
+    const failedAttempts = blockedUntilMs > 0 && blockedUntilMs <= now
+      ? 0
+      : numberFromFirebase(userData.pinFailedAttempts);
+
+    if (blockedUntilMs > now) {
+      return {
+        ok: false,
+        reason: 'blocked',
+        blockedUntilMs,
+        remainingAttempts: 0,
+      };
+    }
+
+    const firebasePin = typeof userData.pin === 'string' ? userData.pin : '';
+    const expectedPin = firebasePin || storedAccount.pin;
+
+    if (expectedPin && expectedPin === pin) {
+      await writePinAttemptState(storedAccount.uid, {
+        pinFailedAttempts: 0,
+        pinBlockedUntilMs: 0,
+      });
+
+      return { ok: true, verifiedPin: expectedPin };
+    }
+
+    const nextFailedAttempts = failedAttempts + 1;
+
+    if (nextFailedAttempts >= MAX_PIN_ATTEMPTS) {
+      const nextBlockedUntilMs = now + PIN_BLOCK_DURATION_MS;
+
+      await writePinAttemptState(storedAccount.uid, {
+        pinBlockedAt: serverTimestamp(),
+        pinBlockedUntilMs: nextBlockedUntilMs,
+        pinFailedAttempts: nextFailedAttempts,
+      });
+
+      return {
+        ok: false,
+        reason: 'blocked',
+        blockedUntilMs: nextBlockedUntilMs,
+        remainingAttempts: 0,
+      };
+    }
+
+    await writePinAttemptState(storedAccount.uid, {
+      pinBlockedUntilMs: 0,
+      pinFailedAttempts: nextFailedAttempts,
+    });
+
+    return {
+      ok: false,
+      reason: 'invalid',
+      remainingAttempts: Math.max(MAX_PIN_ATTEMPTS - nextFailedAttempts, 0),
+    };
+  } catch (error) {
+    console.warn('Failed to verify PIN:', error);
+
+    if (storedAccount.pin === pin) {
+      return { ok: true, verifiedPin: storedAccount.pin };
+    }
+
+    return { ok: false, reason: 'verify-failed' };
+  }
+}
+
 async function userExistsInFirebase(uid: string): Promise<boolean> {
   try {
     const userDoc = await getDoc(doc(db, 'users', uid));
@@ -226,12 +337,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [pendingGoogleAccount, setPendingGoogleAccount] = useState<GoogleAccount | null>(null);
 
   useEffect(() => {
-    setAccount(readAccount());
+    const cachedAccount = readAccount();
+
+    setAccount(cachedAccount);
+    setIsAuthenticated(false);
+
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      // Only set pending account if user is signed in but we don't have a local account
-      // This handles cases where user signs in directly via Firebase (not through our connectGoogleAccount)
-      if (user && !account && !pendingGoogleAccount) {
-        setPendingGoogleAccount({
+      if (user && !cachedAccount) {
+        setPendingGoogleAccount((currentAccount) => currentAccount ?? {
           uid: user.uid,
           name: user.displayName || user.email || 'Toppay User',
           email: user.email || '',
@@ -240,10 +353,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setIsReady(true);
+    }, (error) => {
+      console.warn('Firebase auth state listener failed:', error);
+      setIsReady(true);
     });
 
     return unsubscribe;
-  }, [account, pendingGoogleAccount]);
+  }, []);
 
   const connectGoogleAccount = useCallback(async (idToken?: string) => {
     console.log('🔐 Connecting Google account...');
@@ -317,36 +433,71 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     console.log('🎉 Account setup complete');
   }, [pendingGoogleAccount]);
 
+  const changePin = useCallback(async (newPin: string) => {
+    const storedAccount = account ?? readAccount();
+
+    if (!storedAccount) {
+      throw new Error('No account is available');
+    }
+
+    await setDoc(doc(db, 'users', storedAccount.uid), {
+      hasPin: true,
+      pin: newPin,
+      pinBlockedUntilMs: 0,
+      pinFailedAttempts: 0,
+      updatedAt: serverTimestamp(),
+    }, { merge: true });
+
+    const updatedAccount = { ...storedAccount, pin: newPin };
+    writeAccount(updatedAccount);
+    setAccount(updatedAccount);
+  }, [account]);
+
   const loginWithPin = useCallback(async (pin: string) => {
     const storedAccount = account ?? readAccount();
 
     if (!storedAccount) {
-      return false;
+      return { ok: false, reason: 'missing-account' } as const;
     }
 
-    // First try local PIN (for backward compatibility)
-    if (storedAccount.pin === pin) {
-      setAccount(storedAccount);
+    const result = await verifyStoredAccountPin(storedAccount, pin);
+
+    if (result.ok) {
+      const updatedAccount = { ...storedAccount, pin: result.verifiedPin };
+      writeAccount(updatedAccount);
+      setAccount(updatedAccount);
       setIsAuthenticated(true);
-      return true;
+      return result;
     }
 
-    // If local PIN doesn't match, try fetching from Firebase
-    try {
-      const firebasePin = await getUserPin(storedAccount.uid);
-      if (firebasePin === pin) {
-        // Update local account with Firebase PIN
-        const updatedAccount = { ...storedAccount, pin };
-        writeAccount(updatedAccount);
-        setAccount(updatedAccount);
-        setIsAuthenticated(true);
-        return true;
-      }
-    } catch (error) {
-      console.warn('Failed to verify PIN with Firebase:', error);
+    if (result.reason === 'blocked') {
+      setIsAuthenticated(false);
     }
 
-    return false;
+    return result;
+  }, [account]);
+
+  const verifyActionPin = useCallback(async (pin: string): Promise<PinVerificationResult> => {
+    const storedAccount = account ?? readAccount();
+
+    if (!storedAccount) {
+      return { ok: false, reason: 'missing-account' };
+    }
+
+    const result = await verifyStoredAccountPin(storedAccount, pin);
+
+    if (result.ok) {
+      const updatedAccount = { ...storedAccount, pin: result.verifiedPin };
+      writeAccount(updatedAccount);
+      setAccount(updatedAccount);
+      return result;
+    }
+
+    if (result.reason === 'blocked') {
+      setIsAuthenticated(false);
+    }
+
+    return result;
   }, [account]);
 
   const logout = useCallback(() => {
@@ -374,6 +525,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo<AuthContextValue>(() => ({
     account,
+    changePin,
     connectGoogleAccount,
     hasAccount: Boolean(account),
     isAuthenticated,
@@ -384,8 +536,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetAccount,
     signInForDevelopment,
     setupWithGoogle,
+    verifyActionPin,
   }), [
     account,
+    changePin,
     connectGoogleAccount,
     isAuthenticated,
     isReady,
@@ -395,6 +549,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetAccount,
     signInForDevelopment,
     setupWithGoogle,
+    verifyActionPin,
   ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

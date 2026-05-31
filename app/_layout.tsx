@@ -2,10 +2,12 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import React, { useEffect } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
 import '@/i18n';
 import { AppUpdatePrompt } from '@/components/AppUpdatePrompt';
+import { palette } from '@/constants/toppay';
 import { AuthProvider, useAuth } from '@/contexts/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -19,8 +21,12 @@ export default React.memo(function RootLayout() {
   return (
     <AuthProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <RootNavigator />
-        <AppUpdatePrompt />
+        <View style={styles.webCanvas}>
+          <View style={styles.appShell}>
+            <RootNavigator />
+            <AppUpdatePrompt />
+          </View>
+        </View>
         <StatusBar style="auto" />
       </ThemeProvider>
     </AuthProvider>
@@ -74,6 +80,32 @@ function RootNavigator() {
       <Stack.Screen name="pin-change-submitted" />
       <Stack.Screen name="device-management" />
       <Stack.Screen name="personal-information" />
+      <Stack.Screen name="payment-methods" />
     </Stack>
   );
 }
+
+const styles = StyleSheet.create({
+  webCanvas: {
+    flex: 1,
+    backgroundColor: palette.background,
+    ...(Platform.OS === 'web' ? {
+      alignItems: 'center',
+      minHeight: '100%',
+      width: '100%',
+    } : null),
+  },
+  appShell: {
+    flex: 1,
+    width: '100%',
+    backgroundColor: palette.background,
+    ...(Platform.OS === 'web' ? {
+      maxWidth: 720,
+      overflow: 'hidden',
+      shadowColor: '#0E1B16',
+      shadowOffset: { width: 0, height: 18 },
+      shadowOpacity: 0.12,
+      shadowRadius: 38,
+    } : null),
+  },
+});

@@ -1,17 +1,35 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as IntentLauncher from 'expo-intent-launcher';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Linking, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { palette } from '@/constants/toppay';
 import { checkForAppUpdate, type AppUpdate } from '@/services/app-update';
+
+const APK_MIME_TYPE = 'application/vnd.android.package-archive';
+const ANDROID_VIEW_ACTION = 'android.intent.action.VIEW';
+const FLAG_GRANT_READ_URI_PERMISSION = 1;
+const FLAG_ACTIVITY_NEW_TASK = 268435456;
+
+type UpdateStage = 'idle' | 'downloading' | 'installing' | 'opening';
+
+function getSafeApkFileName(update: AppUpdate) {
+  const rawName = update.assetName || `Toppay-v${update.latestVersion}.apk`;
+  const fileName = rawName.toLowerCase().endsWith('.apk') ? rawName : `${rawName}.apk`;
+
+  return fileName.replace(/[^a-zA-Z0-9._-]/g, '-');
+}
 
 export function AppUpdatePrompt() {
   const { t } = useTranslation();
   const checkedRef = useRef(false);
   const [update, setUpdate] = useState<AppUpdate | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
-  const [isOpening, setIsOpening] = useState(false);
+  const [updateStage, setUpdateStage] = useState<UpdateStage>('idle');
+  const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
+  const [downloadError, setDownloadError] = useState('');
 
   useEffect(() => {
     let isMounted = true;
@@ -42,16 +60,74 @@ export function AppUpdatePrompt() {
       return;
     }
 
-    setIsOpening(true);
+    setDownloadError('');
+    setDownloadProgress(0);
+    setUpdateStage('downloading');
 
     try {
-      await Linking.openURL(update.downloadUrl);
+      if (Platform.OS !== 'android' || !update.downloadUrl.toLowerCase().includes('.apk')) {
+        setUpdateStage('opening');
+        await Linking.openURL(update.downloadUrl);
+        return;
+      }
+
+      const cacheDirectory = FileSystem.cacheDirectory;
+
+      if (!cacheDirectory) {
+        throw new Error('File system cache directory is not available.');
+      }
+
+      const apkUri = `${cacheDirectory}${getSafeApkFileName(update)}`;
+      const download = FileSystem.createDownloadResumable(
+        update.downloadUrl,
+        apkUri,
+        {},
+        ({ totalBytesExpectedToWrite, totalBytesWritten }) => {
+          if (totalBytesExpectedToWrite > 0) {
+            setDownloadProgress(Math.min(totalBytesWritten / totalBytesExpectedToWrite, 1));
+          }
+        },
+      );
+      const result = await download.downloadAsync();
+
+      if (!result?.uri) {
+        throw new Error('APK download did not return a local file URI.');
+      }
+
+      setDownloadProgress(1);
+      setUpdateStage('installing');
+
+      const contentUri = await FileSystem.getContentUriAsync(result.uri);
+      await IntentLauncher.startActivityAsync(ANDROID_VIEW_ACTION, {
+        data: contentUri,
+        flags: FLAG_GRANT_READ_URI_PERMISSION | FLAG_ACTIVITY_NEW_TASK,
+        type: APK_MIME_TYPE,
+      });
+    } catch (error) {
+      console.warn('App update download failed:', error);
+      setDownloadError(t('appUpdate.downloadFailed'));
+      setUpdateStage('opening');
+      try {
+        await Linking.openURL(update.downloadUrl);
+      } catch (openError) {
+        console.warn('App update fallback link failed:', openError);
+      }
     } finally {
-      setIsOpening(false);
+      setDownloadProgress(null);
+      setUpdateStage('idle');
     }
   }
 
   const visible = Boolean(update) && !isDismissed;
+  const isUpdating = updateStage !== 'idle';
+  const downloadPercent = Math.max(0, Math.min(Math.round((downloadProgress ?? 0) * 100), 100));
+  const updateButtonLabel = updateStage === 'downloading'
+    ? t('appUpdate.downloading', { percent: downloadPercent })
+    : updateStage === 'installing'
+      ? t('appUpdate.installing')
+      : updateStage === 'opening'
+        ? t('appUpdate.opening')
+        : t('appUpdate.updateNow');
 
   return (
     <Modal visible={visible} animationType="fade" transparent>
@@ -83,22 +159,34 @@ export function AppUpdatePrompt() {
             </View>
           ) : null}
 
+          {downloadProgress !== null ? (
+            <View style={styles.progressWrap}>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${downloadPercent}%` }]} />
+              </View>
+              <Text style={styles.progressText}>
+                {t('appUpdate.downloadProgress', { percent: downloadPercent })}
+              </Text>
+            </View>
+          ) : null}
+
+          {downloadError ? <Text style={styles.errorText}>{downloadError}</Text> : null}
+
           <View style={styles.actions}>
             <Pressable
-              style={styles.secondaryButton}
+              style={[styles.secondaryButton, isUpdating && styles.disabledButton]}
+              disabled={isUpdating}
               onPress={() => setIsDismissed(true)}
               accessibilityRole="button">
               <Text style={styles.secondaryButtonText}>{t('appUpdate.later')}</Text>
             </Pressable>
             <Pressable
-              style={styles.primaryButton}
-              disabled={isOpening}
+              style={[styles.primaryButton, isUpdating && styles.disabledButton]}
+              disabled={isUpdating}
               onPress={handleUpdateNow}
               accessibilityRole="button">
               <MaterialIcons name="download" size={18} color={palette.surface} />
-              <Text style={styles.primaryButtonText}>
-                {isOpening ? t('appUpdate.opening') : t('appUpdate.updateNow')}
-              </Text>
+              <Text style={styles.primaryButtonText}>{updateButtonLabel}</Text>
             </Pressable>
           </View>
         </View>
@@ -176,6 +264,31 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     lineHeight: 17,
   },
+  progressWrap: {
+    gap: 7,
+  },
+  progressTrack: {
+    height: 8,
+    overflow: 'hidden',
+    borderRadius: 8,
+    backgroundColor: palette.border,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 8,
+    backgroundColor: palette.primary,
+  },
+  progressText: {
+    color: palette.muted,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  errorText: {
+    color: palette.danger,
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 17,
+  },
   actions: {
     flexDirection: 'row',
     gap: 10,
@@ -204,9 +317,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: palette.primary,
   },
+  disabledButton: {
+    opacity: 0.68,
+  },
   primaryButtonText: {
+    flexShrink: 1,
     color: palette.surface,
     fontSize: 14,
     fontWeight: '900',
+    textAlign: 'center',
   },
 });

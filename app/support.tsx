@@ -1,5 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -27,8 +27,11 @@ function isValidEmail(value: string) {
 
 export default function SupportScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
   const { t } = useTranslation();
   const { account, isAuthenticated } = useAuth();
+  const reason = Array.isArray(params.reason) ? params.reason[0] : params.reason;
+  const isPinBlockedSupport = reason === 'pin-blocked';
   const [email, setEmail] = useState(account?.email ?? '');
   const [problem, setProblem] = useState('');
   const [error, setError] = useState('');
@@ -39,6 +42,12 @@ export default function SupportScreen() {
       setEmail((current) => current || account.email);
     }
   }, [account?.email]);
+
+  useEffect(() => {
+    if (isPinBlockedSupport) {
+      setProblem((current) => current || t('support.pinBlockedProblem'));
+    }
+  }, [isPinBlockedSupport, t]);
 
   function goBack() {
     if (router.canGoBack()) {
@@ -136,6 +145,16 @@ export default function SupportScreen() {
               <Text style={styles.whatsappButtonText}>{t('support.chatNow')}</Text>
             </Pressable>
           </View>
+
+          {isPinBlockedSupport ? (
+            <View style={styles.noticeCard}>
+              <MaterialIcons name="lock-clock" size={22} color={palette.danger} />
+              <View style={styles.noticeCopy}>
+                <Text style={styles.noticeTitle}>{t('support.pinBlockedTitle')}</Text>
+                <Text style={styles.noticeText}>{t('support.pinBlockedBody')}</Text>
+              </View>
+            </View>
+          ) : null}
 
           <View style={styles.formPanel}>
             <View style={styles.fieldGroup}>
@@ -283,6 +302,32 @@ const styles = StyleSheet.create({
     color: palette.primary,
     fontSize: 14,
     fontWeight: '900',
+  },
+  noticeCard: {
+    minHeight: 74,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: palette.softCoral,
+    backgroundColor: '#FFF2F0',
+    padding: 14,
+  },
+  noticeCopy: {
+    flex: 1,
+    gap: 4,
+  },
+  noticeTitle: {
+    color: palette.danger,
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  noticeText: {
+    color: palette.ink,
+    fontSize: 12,
+    fontWeight: '700',
+    lineHeight: 17,
   },
   formPanel: {
     gap: 16,

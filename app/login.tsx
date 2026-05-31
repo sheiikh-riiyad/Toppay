@@ -17,6 +17,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AppLogo from '@/components/AppLogo';
 import LanguageToggle from '@/components/LanguageToggle';
 import { palette } from '@/constants/toppay';
 import { useAuth } from '@/contexts/auth';
@@ -114,15 +115,32 @@ export default function LoginScreen() {
 
     try {
       await waitForLoadingFrame();
-      const success = await loginWithPin(pin);
+      const result = await loginWithPin(pin);
 
-      if (success) {
+      if (result.ok) {
         pushHome();
         return;
       }
 
       setPin('');
-      setError(t('login.invalidPin'));
+      if (result.reason === 'blocked') {
+        router.replace({
+          pathname: '/support',
+          params: {
+            reason: 'pin-blocked',
+          },
+        });
+        return;
+      }
+
+      if (result.reason === 'invalid') {
+        setError(t('securityPin.invalidPinWithAttempts', {
+          attempts: result.remainingAttempts ?? 0,
+        }));
+        return;
+      }
+
+      setError(t(result.reason === 'verify-failed' ? 'securityPin.verifyFailed' : 'login.invalidPin'));
     } finally {
       setIsCreatingWallet(false);
     }
@@ -276,9 +294,7 @@ export default function LoginScreen() {
     <SafeAreaView style={styles.screen} edges={['top']}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.brandBlock}>
-          <View style={styles.logoMark}>
-            <Text style={styles.logoLetter}>T</Text>
-          </View>
+          <AppLogo size={70} />
           <Text style={styles.brandName}>Toppay</Text>
           <Text style={styles.brandMeta}>
             {hasAccount ? t('login.pinSubtitle') : t('login.googleSubtitle')}
@@ -559,19 +575,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingTop: 18,
     paddingBottom: 4,
-  },
-  logoMark: {
-    width: 70,
-    height: 70,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.primary,
-  },
-  logoLetter: {
-    color: palette.surface,
-    fontSize: 36,
-    fontWeight: '900',
   },
   brandName: {
     color: palette.ink,

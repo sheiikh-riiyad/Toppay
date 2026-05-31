@@ -55,6 +55,13 @@ export type WalletTransaction = {
   trxId?: string;
   proofName?: string;
   proofImageUri?: string;
+  paymentSourceId?: string;
+  paymentSourceLabel?: string;
+  paymentSourceMasked?: string;
+  paymentSourceType?: 'manual' | 'card';
+  cardVerificationProvided?: boolean;
+  cardVerificationMode?: 'test' | 'live';
+  cardVerificationLength?: number;
   note?: string;
   createdAtText: string;
 };
@@ -67,6 +74,13 @@ type CreateAddBalanceRequestInput = {
   trxId?: string;
   proofName?: string;
   proofImageUri?: string;
+  paymentSourceId?: string;
+  paymentSourceLabel?: string;
+  paymentSourceMasked?: string;
+  paymentSourceType?: 'manual' | 'card';
+  cardVerificationProvided?: boolean;
+  cardVerificationMode?: 'test' | 'live';
+  cardVerificationLength?: number;
 };
 
 type CreateCashOutRequestInput = {
@@ -238,6 +252,13 @@ function mapWalletTransaction(id: string, data: DocumentData): WalletTransaction
     trxId: data.trxId,
     proofName: data.proofName,
     proofImageUri: data.proofImageUri,
+    paymentSourceId: data.paymentSourceId,
+    paymentSourceLabel: data.paymentSourceLabel,
+    paymentSourceMasked: data.paymentSourceMasked,
+    paymentSourceType: data.paymentSourceType,
+    cardVerificationProvided: Boolean(data.cardVerificationProvided),
+    cardVerificationMode: data.cardVerificationMode,
+    cardVerificationLength: Number(data.cardVerificationLength) || undefined,
     note: data.note,
     createdAtText: timestampToText(data.createdAt),
   };
@@ -298,7 +319,7 @@ export async function createAddBalanceRequest(input: CreateAddBalanceRequestInpu
     requestId,
     uid: input.uid,
     type: 'add_balance',
-    title: `Add balance via ${input.method}`,
+    title: `Add balance via ${input.paymentSourceLabel || input.method}`,
     method: input.method,
     amount: input.amount,
     fee: 0,
@@ -312,6 +333,13 @@ export async function createAddBalanceRequest(input: CreateAddBalanceRequestInpu
     trxId: input.trxId,
     proofName: input.proofName,
     proofImageUri: input.proofImageUri,
+    paymentSourceId: input.paymentSourceId,
+    paymentSourceLabel: input.paymentSourceLabel,
+    paymentSourceMasked: input.paymentSourceMasked,
+    paymentSourceType: input.paymentSourceType || 'manual',
+    cardVerificationProvided: input.cardVerificationProvided,
+    cardVerificationMode: input.cardVerificationMode,
+    cardVerificationLength: input.cardVerificationLength,
     createdAtText: 'Just now',
   };
 

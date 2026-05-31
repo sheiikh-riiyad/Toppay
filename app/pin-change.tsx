@@ -13,17 +13,20 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { palette } from '@/constants/toppay';
+import { useSecureActionPin } from '@/hooks/use-secure-action-pin';
 
 export default function PinChangeScreen() {
   const router = useRouter();
   const { t } = useTranslation();
+  const verifySecureActionPin = useSecureActionPin();
   const [oldPin, setOldPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [retypePin, setRetypePin] = useState('');
+  const [isCheckingPin, setIsCheckingPin] = useState(false);
   const [errors, setErrors] = useState({ old: '', new: '', retype: '' });
 
   const canContinue =
-    oldPin.length === 4 && newPin.length === 4 && retypePin.length === 4 && newPin === retypePin;
+    oldPin.length === 4 && newPin.length === 4 && retypePin.length === 4 && newPin === retypePin && !isCheckingPin;
 
   function handlePinChange(text: string) {
     if (text.length <= 4 && /^\d*$/.test(text)) {
@@ -57,7 +60,7 @@ export default function PinChangeScreen() {
     }
   }
 
-  function handleContinue() {
+  async function handleContinue() {
     // Validate all fields
     const newErrors = { old: '', new: '', retype: '' };
     
@@ -80,6 +83,19 @@ export default function PinChangeScreen() {
     if (newErrors.old || newErrors.new || newErrors.retype) {
       setErrors(newErrors);
       return;
+    }
+
+    setIsCheckingPin(true);
+
+    try {
+      const pinVerification = await verifySecureActionPin(oldPin);
+      if (!pinVerification.ok) {
+        setOldPin('');
+        setErrors({ old: pinVerification.message, new: '', retype: '' });
+        return;
+      }
+    } finally {
+      setIsCheckingPin(false);
     }
 
     // Navigate to confirmation page
@@ -209,10 +225,12 @@ export default function PinChangeScreen() {
         <Pressable
           style={[styles.primaryButton, !canContinue && styles.primaryButtonDisabled]}
           disabled={!canContinue}
-          onPress={handleContinue}
+          onPress={() => void handleContinue()}
           accessibilityRole="button">
           <MaterialIcons name="arrow-forward" size={18} color={palette.surface} />
-          <Text style={styles.primaryButtonText}>{t('generic.continueToConfirm')}</Text>
+          <Text style={styles.primaryButtonText}>
+            {isCheckingPin ? t('common.loading') : t('generic.continueToConfirm')}
+          </Text>
         </Pressable>
       </ScrollView>
     </SafeAreaView>

@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import WalletMiniLogo from '@/components/WalletMiniLogo';
 import { useAuth } from '@/contexts/auth';
 import { useBonusRate } from '@/hooks/use-bonus-rate';
+import { useSecureActionPin } from '@/hooks/use-secure-action-pin';
 import { useWalletData } from '@/hooks/use-wallet-data';
 import { cashOutMethods, formatCurrency, palette } from '@/constants/toppay';
 import { calculateBonus } from '@/services/bonus';
@@ -29,6 +30,7 @@ export default function SendMoneyConfirmationScreen() {
   const { t } = useTranslation();
   const { account } = useAuth();
   const { bonusRate } = useBonusRate('sendmoney');
+  const verifySecureActionPin = useSecureActionPin();
   const { summary } = useWalletData(account?.uid);
   const params = useLocalSearchParams();
   
@@ -108,6 +110,14 @@ export default function SendMoneyConfirmationScreen() {
 
     if (!account) {
       setSubmitError(t('login.googleFailed'));
+      return;
+    }
+
+    const pinVerification = await verifySecureActionPin(pin);
+    if (!pinVerification.ok) {
+      setPin('');
+      setPressProgress(0);
+      setSubmitError(pinVerification.message);
       return;
     }
 

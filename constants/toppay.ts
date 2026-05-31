@@ -80,7 +80,7 @@ export type OfferBanner = {
 export type AddBalanceMethod = {
   name: string;
   mark: string;
-  type: 'Mobile wallet' | 'Bank account';
+  type: 'Mobile wallet' | 'Bank account' | 'Card';
   receiverName: string;
   receiverAccount: string;
   instruction: string;

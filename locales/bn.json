@@ -159,6 +159,9 @@
   "support": {
     "title": "সাপোর্ট",
     "subtitle": "কি সমস্যা হয়েছে লিখুন, আমরা WhatsApp-এ সাহায্য করব।",
+    "pinBlockedTitle": "পিন সাময়িকভাবে ব্লক করা হয়েছে",
+    "pinBlockedBody": "আপনি ৩ বার ভুল পিন দিয়েছেন। সাপোর্টে যোগাযোগ করুন অথবা ১০ মিনিট পর আবার চেষ্টা করুন।",
+    "pinBlockedProblem": "৩ বার ভুল পিন দেওয়ার কারণে আমার অ্যাকাউন্ট পিন সাময়িকভাবে ব্লক হয়েছে। দয়া করে আমার Toppay অ্যাকাউন্ট আনলক করতে সাহায্য করুন।",
     "whatsappTitle": "WhatsApp সাপোর্ট",
     "chatNow": "এখনই WhatsApp-এ চ্যাট করুন",
     "emailLabel": "ইমেইল ঠিকানা",
@@ -175,14 +178,23 @@
     "directMessage": "Hello Toppay Support,\nI need help with my account.\nEmail: {{email}}",
     "whatsappMessage": "Toppay Support Request\nEmail: {{email}}\nProblem: {{problem}}"
   },
+  "securityPin": {
+    "invalidPinWithAttempts": "ভুল পিন। বাকি চেষ্টা: {{attempts}}।",
+    "temporaryBlocked": "অনেকবার ভুল পিন দেওয়া হয়েছে। আপনার অ্যাকাউন্ট সাময়িকভাবে ব্লক করা হয়েছে।",
+    "verifyFailed": "আপনার পিন যাচাই করা যায়নি। কানেকশন চেক করে আবার চেষ্টা করুন।"
+  },
   "appUpdate": {
     "title": "আপডেট আছে",
-    "body": "GitHub থেকে নতুন Toppay APK পাওয়া যাচ্ছে। সর্বশেষ ভার্সন পেতে এটি ডাউনলোড করে ইনস্টল করুন।",
+    "body": "নতুন Toppay APK পাওয়া যাচ্ছে। Update চাপলে ডাউনলোড হবে, এরপর Android-এর install screen অনুমতি দিন।",
     "versionLine": "বর্তমান {{current}} -> নতুন {{latest}}",
     "notesTitle": "রিলিজ নোট",
     "later": "পরে",
     "updateNow": "আপডেট",
-    "opening": "খোলা হচ্ছে..."
+    "opening": "খোলা হচ্ছে...",
+    "downloading": "ডাউনলোড হচ্ছে {{percent}}%",
+    "downloadProgress": "{{percent}}% ডাউনলোড হয়েছে",
+    "installing": "ইনস্টলার খোলা হচ্ছে...",
+    "downloadFailed": "ডাউনলোড ব্যর্থ হয়েছে। এর বদলে রিলিজ লিংক খোলা হচ্ছে।"
   },
   "sendMoney": {
     "title": "টাকা পাঠান",
@@ -415,6 +427,7 @@
     "method": "মেথড",
     "notAttached": "সংযুক্ত নয়",
     "notProvided": "দেওয়া হয়নি",
+    "noPendingTransactions": "কোনো পেন্ডিং ট্রান্সাকশন নেই",
     "paidAmount": "পরিশোধিত পরিমাণ",
     "paymentMethod": "পেমেন্ট মেথড",
     "paymentProof": "পেমেন্ট প্রমাণ",
@@ -447,7 +460,8 @@
   },
   "methodTypes": {
     "mobileWallet": "মোবাইল ওয়ালেট",
-    "bankAccount": "ব্যাংক অ্যাকাউন্ট"
+    "bankAccount": "ব্যাংক অ্যাকাউন্ট",
+    "card": "কার্ড"
   },
   "statuses": {
     "completed": "সম্পন্ন",
@@ -462,7 +476,8 @@
     "searchTransactions": "লেনদেন খুঁজুন",
     "filterAll": "সব",
     "filterMoneyIn": "টাকা এসেছে",
-    "filterMoneyOut": "টাকা গেছে"
+    "filterMoneyOut": "টাকা গেছে",
+    "noFilteredTransactions": "এই ফিল্টারে কোনো লেনদেন পাওয়া যায়নি।"
   },
   "scanPage": {
     "kicker": "মার্চেন্ট চেকআউট",
@@ -506,6 +521,35 @@
     "supportCenter": "সাপোর্ট সেন্টার",
     "ticketsAndChat": "টিকিট ও চ্যাট",
     "signOut": "সাইন আউট"
+  },
+  "paymentMethods": {
+    "kicker": "ওয়ালেট ফান্ডিং",
+    "title": "কার্ড ও ব্যাংক",
+    "heroTitle": "ব্যাংক ও কার্ড তথ্য সংরক্ষণ করুন",
+    "heroMeta": "অ্যাড মানি রিকোয়েস্টে সেভ করা কার্ড ব্যবহার করুন এবং ভবিষ্যৎ সার্ভিসের জন্য ব্যাংক অ্যাকাউন্ট প্রস্তুত রাখুন।",
+    "bankAccounts": "ব্যাংক অ্যাকাউন্ট",
+    "cards": "কার্ড",
+    "addBankTitle": "ব্যাংক অ্যাকাউন্ট যোগ করুন",
+    "addCardTitle": "কার্ড যোগ করুন",
+    "bankName": "ব্যাংকের নাম",
+    "accountHolderName": "অ্যাকাউন্ট হোল্ডারের নাম",
+    "accountNumber": "অ্যাকাউন্ট নম্বর",
+    "branchNameOptional": "ব্রাঞ্চের নাম (ঐচ্ছিক)",
+    "cardholderName": "কার্ডহোল্ডারের নাম",
+    "cardNumber": "কার্ড নম্বর",
+    "expiryMonth": "MM",
+    "expiryYear": "YYYY",
+    "saveBank": "ব্যাংক অ্যাকাউন্ট সংরক্ষণ",
+    "saveCard": "কার্ড সংরক্ষণ",
+    "noBankAccounts": "এখনও কোনো ব্যাংক অ্যাকাউন্ট সংরক্ষণ করা হয়নি।",
+    "noCards": "এখনও কোনো কার্ড সংরক্ষণ করা হয়নি।",
+    "bankSaved": "ব্যাংক অ্যাকাউন্ট সংরক্ষণ হয়েছে।",
+    "cardSaved": "কার্ড সংরক্ষণ হয়েছে।",
+    "saveFailed": "এই পেমেন্ট মেথড সংরক্ষণ করা যায়নি। তথ্য চেক করে আবার চেষ্টা করুন।",
+    "deleteConfirm": "এই সেভ করা পেমেন্ট মেথড সরাবেন?",
+    "deleteFailed": "এই পেমেন্ট মেথড সরানো যায়নি।",
+    "cardSecurityNote": "CVV লিখবেন না। Toppay শুধু মাস্কড কার্ড নম্বর এবং শেষ ৪ ডিজিট সংরক্ষণ করে।",
+    "card": "কার্ড"
   },
   "sendMoneyPage": {
     "kicker": "মানি ট্রান্সফার",
@@ -637,7 +681,19 @@
     "stepPay": "পে",
     "stepSubmit": "জমা",
     "stepApprove": "অনুমোদন",
+    "fundingSource": "ফান্ডিং সোর্স",
+    "manualTransfer": "ম্যানুয়াল ট্রান্সফার",
+    "manualTransferMeta": "Toppay নম্বর বা ব্যাংকে পে করে প্রুফ জমা দিন।",
+    "savedCard": "সেভ করা কার্ড",
+    "savedCardMeta": "অ্যাডমিন অনুমোদনের জন্য কার্ড অ্যাড মানি রিকোয়েস্ট তৈরি করুন।",
     "chooseChannel": "পেমেন্ট চ্যানেল নির্বাচন করুন",
+    "chooseSavedCard": "সেভ করা কার্ড নির্বাচন করুন",
+    "noSavedCards": "সেভ করা কার্ড নেই",
+    "noSavedCardsMeta": "কার্ড অ্যাড মানি রিকোয়েস্ট পাঠানোর আগে প্রোফাইল থেকে একটি কার্ড যোগ করুন।",
+    "addSavedCard": "সেভড কার্ড যোগ করুন",
+    "cardCvvPlaceholder": "CVV",
+    "cardCvvNote": "CVV শুধু এই রিকোয়েস্ট স্ক্রিনে ব্যবহার হয় এবং কখনও সংরক্ষণ করা হয় না।",
+    "cardRequestMeta": "অ্যাডমিন ট্রান্সাকশন Done না করা পর্যন্ত কার্ড অ্যাড মানি রিকোয়েস্ট পেন্ডিং থাকবে।",
     "mobileInstruction": "এই পার্সোনাল নম্বরে Send Money করুন, তারপর TRX ID জমা দিন।",
     "bankInstruction": "এই অ্যাকাউন্টে ডিপোজিট বা ট্রান্সফার করুন, তারপর TRX ID বা রেফারেন্স জমা দিন।",
     "amountPaid": "পরিশোধিত পরিমাণ",
@@ -682,6 +738,7 @@
     "confirmHeroMeta": "নিশ্চিত করতে আপনার বর্তমান পিন লিখুন",
     "enterYourPin": "আপনার পিন লিখুন",
     "pinWarning": "আপনার ৪ ডিজিট পিন লিখুন",
+    "changeFailed": "আপনার পিন পরিবর্তন করা যায়নি। আবার চেষ্টা করুন।",
     "submittedTitle": "পিন পরিবর্তন হয়েছে!",
     "submittedMeta": "আপনার ওয়ালেট পিন সফলভাবে আপডেট হয়েছে",
     "updated": "আপডেট হয়েছে",

@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth';
+import { useSecureActionPin } from '@/hooks/use-secure-action-pin';
 import { formatCurrency, palette } from '@/constants/toppay';
 import { createCashOutRequest } from '@/services/wallet';
 
@@ -22,6 +23,7 @@ export default function CashOutConfirmationScreen() {
   const { t } = useTranslation();
   const params = useLocalSearchParams();
   const { account } = useAuth();
+  const verifySecureActionPin = useSecureActionPin();
   const [pin, setPin] = useState('');
   const [confirmed, setConfirmed] = useState(false);
   const [pinError, setPinError] = useState(false);
@@ -130,11 +132,18 @@ export default function CashOutConfirmationScreen() {
       return;
     }
 
-    // TODO: Validate PIN with backend
-    // For now, we'll accept any 4-digit PIN
     if (pin.length === 4) {
       if (!account) {
         setSubmitError(t('login.googleFailed'));
+        return;
+      }
+
+      const pinVerification = await verifySecureActionPin(pin);
+      if (!pinVerification.ok) {
+        progressAnim.setValue(0);
+        setPin('');
+        setPinError(false);
+        setSubmitError(pinVerification.message);
         return;
       }
 

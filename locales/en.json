@@ -159,6 +159,9 @@
   "support": {
     "title": "Support",
     "subtitle": "Tell us what happened and we will help through WhatsApp.",
+    "pinBlockedTitle": "PIN temporarily blocked",
+    "pinBlockedBody": "You entered the wrong PIN 3 times. Contact support or try again after 10 minutes.",
+    "pinBlockedProblem": "My account PIN is temporarily blocked after 3 wrong attempts. Please help me unlock my Toppay account.",
     "whatsappTitle": "WhatsApp support",
     "chatNow": "Chat now on WhatsApp",
     "emailLabel": "Email address",
@@ -175,14 +178,23 @@
     "directMessage": "Hello Toppay Support,\nI need help with my account.\nEmail: {{email}}",
     "whatsappMessage": "Toppay Support Request\nEmail: {{email}}\nProblem: {{problem}}"
   },
+  "securityPin": {
+    "invalidPinWithAttempts": "Invalid PIN. Remaining attempts: {{attempts}}.",
+    "temporaryBlocked": "Too many wrong PIN attempts. Your account is temporarily blocked.",
+    "verifyFailed": "Could not verify your PIN. Please check your connection and try again."
+  },
   "appUpdate": {
     "title": "Update available",
-    "body": "A newer Toppay APK is available from GitHub. Download and install it to get the latest version.",
+    "body": "A newer Toppay APK is available. Tap Update to download it, then approve Android's install screen.",
     "versionLine": "Current {{current}} -> Latest {{latest}}",
     "notesTitle": "Release notes",
     "later": "Later",
     "updateNow": "Update",
-    "opening": "Opening..."
+    "opening": "Opening...",
+    "downloading": "Downloading {{percent}}%",
+    "downloadProgress": "{{percent}}% downloaded",
+    "installing": "Opening installer...",
+    "downloadFailed": "Download failed. Opening the release link instead."
   },
   "sendMoney": {
     "title": "Send Money",
@@ -415,6 +427,7 @@
     "method": "Method",
     "notAttached": "Not attached",
     "notProvided": "Not provided",
+    "noPendingTransactions": "No pending transactions",
     "paidAmount": "Paid amount",
     "paymentMethod": "Payment Method",
     "paymentProof": "Payment Proof",
@@ -447,7 +460,8 @@
   },
   "methodTypes": {
     "mobileWallet": "Mobile wallet",
-    "bankAccount": "Bank account"
+    "bankAccount": "Bank account",
+    "card": "Card"
   },
   "statuses": {
     "completed": "Completed",
@@ -462,7 +476,8 @@
     "searchTransactions": "Search transactions",
     "filterAll": "All",
     "filterMoneyIn": "Money In",
-    "filterMoneyOut": "Money Out"
+    "filterMoneyOut": "Money Out",
+    "noFilteredTransactions": "No transactions found for this filter."
   },
   "scanPage": {
     "kicker": "Merchant Checkout",
@@ -506,6 +521,35 @@
     "supportCenter": "Support Center",
     "ticketsAndChat": "Tickets and chat",
     "signOut": "Sign Out"
+  },
+  "paymentMethods": {
+    "kicker": "Wallet Funding",
+    "title": "Cards & Banks",
+    "heroTitle": "Save bank and card details",
+    "heroMeta": "Use saved cards for add-money requests and keep bank accounts ready for wallet services.",
+    "bankAccounts": "Bank accounts",
+    "cards": "Cards",
+    "addBankTitle": "Add bank account",
+    "addCardTitle": "Add card",
+    "bankName": "Bank name",
+    "accountHolderName": "Account holder name",
+    "accountNumber": "Account number",
+    "branchNameOptional": "Branch name (optional)",
+    "cardholderName": "Cardholder name",
+    "cardNumber": "Card number",
+    "expiryMonth": "MM",
+    "expiryYear": "YYYY",
+    "saveBank": "Save Bank Account",
+    "saveCard": "Save Card",
+    "noBankAccounts": "No bank accounts saved yet.",
+    "noCards": "No cards saved yet.",
+    "bankSaved": "Bank account saved.",
+    "cardSaved": "Card saved.",
+    "saveFailed": "Could not save this payment method. Please check the details and try again.",
+    "deleteConfirm": "Remove this saved payment method?",
+    "deleteFailed": "Could not remove this payment method.",
+    "cardSecurityNote": "Do not enter CVV. Toppay stores only the masked card number and last 4 digits.",
+    "card": "Card"
   },
   "sendMoneyPage": {
     "kicker": "People Transfer",
@@ -637,7 +681,19 @@
     "stepPay": "Pay",
     "stepSubmit": "Submit",
     "stepApprove": "Approve",
+    "fundingSource": "Funding source",
+    "manualTransfer": "Manual transfer",
+    "manualTransferMeta": "Pay to Toppay number or bank, then submit proof.",
+    "savedCard": "Saved card",
+    "savedCardMeta": "Create a card add-money request for admin approval.",
     "chooseChannel": "Choose payment channel",
+    "chooseSavedCard": "Choose saved card",
+    "noSavedCards": "No saved card",
+    "noSavedCardsMeta": "Add a card from your profile before sending a card add-money request.",
+    "addSavedCard": "Add Saved Card",
+    "cardCvvPlaceholder": "CVV",
+    "cardCvvNote": "CVV is used only for this request screen and is never saved.",
+    "cardRequestMeta": "Card add-money requests stay pending until admin marks the transaction done.",
     "mobileInstruction": "Send Money to this personal number, then submit your TRX ID.",
     "bankInstruction": "Deposit or transfer to this account, then submit TRX ID or reference.",
     "amountPaid": "Amount paid",
@@ -682,6 +738,7 @@
     "confirmHeroMeta": "Enter your current PIN to confirm",
     "enterYourPin": "Enter your PIN",
     "pinWarning": "Please enter your 4-digit PIN",
+    "changeFailed": "Could not change your PIN. Please try again.",
     "submittedTitle": "PIN Changed!",
     "submittedMeta": "Your wallet PIN has been updated successfully",
     "updated": "Updated",

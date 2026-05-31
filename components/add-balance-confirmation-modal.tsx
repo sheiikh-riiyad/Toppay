@@ -12,6 +12,7 @@ interface AddBalanceConfirmationModalProps {
   trxId: string;
   proofImageUri?: string;
   proofFileName?: string;
+  referenceLabel?: string;
   isSubmitting?: boolean;
   onConfirm: () => void | Promise<void>;
   onEdit: () => void;
@@ -24,6 +25,7 @@ export function AddBalanceConfirmationModal({
   trxId,
   proofImageUri,
   proofFileName,
+  referenceLabel,
   isSubmitting,
   onConfirm,
   onEdit,
@@ -52,7 +54,13 @@ export function AddBalanceConfirmationModal({
                   />
                   <View style={styles.methodInfo}>
                     <Text style={styles.methodName}>{selectedMethod.name}</Text>
-                    <Text style={styles.methodType}>{t(selectedMethod.type === 'Mobile wallet' ? 'methodTypes.mobileWallet' : 'methodTypes.bankAccount')}</Text>
+                    <Text style={styles.methodType}>
+                      {t(selectedMethod.type === 'Mobile wallet'
+                        ? 'methodTypes.mobileWallet'
+                        : selectedMethod.type === 'Card'
+                          ? 'methodTypes.card'
+                          : 'methodTypes.bankAccount')}
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -67,7 +75,7 @@ export function AddBalanceConfirmationModal({
               <View style={styles.divider} />
 
               <View style={styles.reviewSection}>
-                <Text style={styles.sectionLabel}>{t('generic.transactionReference')}</Text>
+                <Text style={styles.sectionLabel}>{referenceLabel || t('generic.transactionReference')}</Text>
                 {trxId ? (
                   <Text style={styles.trxIdText}>{trxId}</Text>
                 ) : (
