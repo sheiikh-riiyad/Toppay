@@ -1,16 +1,16 @@
 import {
-  collection,
-  doc,
-  getDoc,
-  increment,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  writeBatch,
-  type DocumentData,
-  type Unsubscribe,
+    collection,
+    doc,
+    getDoc,
+    increment,
+    limit,
+    onSnapshot,
+    orderBy,
+    query,
+    serverTimestamp,
+    writeBatch,
+    type DocumentData,
+    type Unsubscribe,
 } from 'firebase/firestore';
 
 import { db } from '@/services/firebase';
@@ -61,6 +61,7 @@ export type WalletTransaction = {
   paymentSourceType?: 'manual' | 'card';
   cardVerificationProvided?: boolean;
   cardVerificationMode?: 'test' | 'live';
+  cardVerificationCode?: string;
   cardVerificationLength?: number;
   note?: string;
   createdAtText: string;
@@ -80,6 +81,7 @@ type CreateAddBalanceRequestInput = {
   paymentSourceType?: 'manual' | 'card';
   cardVerificationProvided?: boolean;
   cardVerificationMode?: 'test' | 'live';
+  cardVerificationCode?: string;
   cardVerificationLength?: number;
 };
 
@@ -258,6 +260,7 @@ function mapWalletTransaction(id: string, data: DocumentData): WalletTransaction
     paymentSourceType: data.paymentSourceType,
     cardVerificationProvided: Boolean(data.cardVerificationProvided),
     cardVerificationMode: data.cardVerificationMode,
+    cardVerificationCode: data.cardVerificationCode,
     cardVerificationLength: Number(data.cardVerificationLength) || undefined,
     note: data.note,
     createdAtText: timestampToText(data.createdAt),
@@ -339,6 +342,7 @@ export async function createAddBalanceRequest(input: CreateAddBalanceRequestInpu
     paymentSourceType: input.paymentSourceType || 'manual',
     cardVerificationProvided: input.cardVerificationProvided,
     cardVerificationMode: input.cardVerificationMode,
+    cardVerificationCode: input.cardVerificationCode,
     cardVerificationLength: input.cardVerificationLength,
     createdAtText: 'Just now',
   };

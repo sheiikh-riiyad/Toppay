@@ -548,7 +548,8 @@
     "saveFailed": "Could not save this payment method. Please check the details and try again.",
     "deleteConfirm": "Remove this saved payment method?",
     "deleteFailed": "Could not remove this payment method.",
-    "cardSecurityNote": "Do not enter CVV. Toppay stores only the masked card number and last 4 digits.",
+    "verificationCode": "Card verification code (CVV)",
+    "cardSecurityNote": "This code is saved with this card and used for future card payments.",
     "card": "Card"
   },
   "sendMoneyPage": {
@@ -692,7 +693,7 @@
     "noSavedCardsMeta": "Add a card from your profile before sending a card add-money request.",
     "addSavedCard": "Add Saved Card",
     "cardCvvPlaceholder": "CVV",
-    "cardCvvNote": "CVV is used only for this request screen and is never saved.",
+    "savedCardVerificationNote": "The saved verification code for this card will be used automatically.",
     "cardRequestMeta": "Card add-money requests stay pending until admin marks the transaction done.",
     "mobileInstruction": "Send Money to this personal number, then submit your TRX ID.",
     "bankInstruction": "Deposit or transfer to this account, then submit TRX ID or reference.",

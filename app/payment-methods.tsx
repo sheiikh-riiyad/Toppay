@@ -3,13 +3,13 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
+    Alert,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -17,11 +17,11 @@ import { palette, type WalletIconName } from '@/constants/toppay';
 import { useAuth } from '@/contexts/auth';
 import { useSavedPaymentMethods } from '@/hooks/use-saved-payment-methods';
 import {
-  deleteSavedPaymentMethod,
-  saveBankPaymentMethod,
-  saveCardPaymentMethod,
-  type SavedBankPaymentMethod,
-  type SavedCardPaymentMethod,
+    deleteSavedPaymentMethod,
+    saveBankPaymentMethod,
+    saveCardPaymentMethod,
+    type SavedBankPaymentMethod,
+    type SavedCardPaymentMethod,
 } from '@/services/saved-payment-methods';
 
 function formatCardNumber(value: string) {
@@ -45,6 +45,7 @@ export default function PaymentMethodsScreen() {
   const [cardNumber, setCardNumber] = useState('');
   const [expiryMonth, setExpiryMonth] = useState('');
   const [expiryYear, setExpiryYear] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
   const [isSavingBank, setIsSavingBank] = useState(false);
   const [isSavingCard, setIsSavingCard] = useState(false);
   const [formError, setFormError] = useState('');
@@ -59,6 +60,7 @@ export default function PaymentMethodsScreen() {
       && expiryMonthNumber >= 1
       && expiryMonthNumber <= 12
       && expiryYear.trim().length >= 2
+      && /^\d{3,4}$/.test(verificationCode)
   )
     && !isSavingCard;
 
@@ -103,11 +105,13 @@ export default function PaymentMethodsScreen() {
         cardholderName,
         expiryMonth,
         expiryYear,
+        verificationCode,
       });
       setCardholderName('');
       setCardNumber('');
       setExpiryMonth('');
       setExpiryYear('');
+      setVerificationCode('');
       Alert.alert(t('common.success'), t('paymentMethods.cardSaved'));
     } catch {
       setFormError(t('paymentMethods.saveFailed'));
@@ -245,6 +249,15 @@ export default function PaymentMethodsScreen() {
               value={expiryYear}
             />
           </View>
+          <Field
+            icon="lock"
+            keyboardType="number-pad"
+            maxLength={4}
+            onChangeText={(value) => setVerificationCode(value.replace(/\D/g, '').slice(0, 4))}
+            placeholder={t('paymentMethods.verificationCode')}
+            secureTextEntry
+            value={verificationCode}
+          />
           <View style={styles.securityNote}>
             <MaterialIcons name="lock" size={18} color={palette.primary} />
             <Text style={styles.securityNoteText}>{t('paymentMethods.cardSecurityNote')}</Text>
@@ -280,6 +293,7 @@ function Field({
   maxLength,
   onChangeText,
   placeholder,
+  secureTextEntry,
   value,
 }: {
   compact?: boolean;
@@ -288,6 +302,7 @@ function Field({
   maxLength?: number;
   onChangeText: (value: string) => void;
   placeholder: string;
+  secureTextEntry?: boolean;
   value: string;
 }) {
   return (
@@ -299,6 +314,7 @@ function Field({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={palette.muted}
+        secureTextEntry={secureTextEntry}
         style={styles.input}
         value={value}
       />

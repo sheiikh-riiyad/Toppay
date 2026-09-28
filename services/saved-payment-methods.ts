@@ -1,14 +1,14 @@
 import {
-  collection,
-  deleteDoc,
-  doc,
-  onSnapshot,
-  orderBy,
-  query,
-  serverTimestamp,
-  setDoc,
-  type DocumentData,
-  type Unsubscribe,
+    collection,
+    deleteDoc,
+    doc,
+    onSnapshot,
+    orderBy,
+    query,
+    serverTimestamp,
+    setDoc,
+    type DocumentData,
+    type Unsubscribe,
 } from 'firebase/firestore';
 
 import { db } from '@/services/firebase';
@@ -35,6 +35,7 @@ export type SavedCardPaymentMethod = {
   label: string;
   last4: string;
   maskedNumber: string;
+  verificationCode: string;
 };
 
 export type SavedPaymentMethod = SavedBankPaymentMethod | SavedCardPaymentMethod;
@@ -51,6 +52,7 @@ export type SaveCardPaymentMethodInput = {
   cardholderName: string;
   expiryMonth: string;
   expiryYear: string;
+  verificationCode: string;
 };
 
 function getPaymentMethodsCollection(uid: string) {
@@ -115,6 +117,7 @@ function mapSavedPaymentMethod(id: string, data: DocumentData): SavedPaymentMeth
       label: String(data.label || `${data.brand || 'Card'} •••• ${last4}`),
       last4,
       maskedNumber: String(data.maskedNumber || (last4 ? `•••• •••• •••• ${last4}` : '')),
+      verificationCode: String(data.verificationCode || ''),
     };
   }
 
@@ -192,10 +195,11 @@ export async function saveCardPaymentMethod(uid: string, input: SaveCardPaymentM
   const cardholderName = cleanText(input.cardholderName);
   const expiryMonth = cleanDigits(input.expiryMonth).padStart(2, '0').slice(-2);
   const expiryYear = cleanDigits(input.expiryYear).slice(-4);
+  const verificationCode = cleanDigits(input.verificationCode);
   const monthNumber = Number(expiryMonth);
   const timestamp = serverTimestamp();
 
-  if (monthNumber < 1 || monthNumber > 12 || expiryYear.length < 2) {
+  if (monthNumber < 1 || monthNumber > 12 || expiryYear.length < 2 || !/^\d{3,4}$/.test(verificationCode)) {
     throw new Error('Card expiry is invalid.');
   }
 
@@ -209,6 +213,7 @@ export async function saveCardPaymentMethod(uid: string, input: SaveCardPaymentM
     label: `${brand} •••• ${last4}`,
     last4,
     maskedNumber,
+    verificationCode,
     createdAt: timestamp,
     updatedAt: timestamp,
   });

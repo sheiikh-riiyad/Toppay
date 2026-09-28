@@ -5,15 +5,15 @@ import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator,
-  Animated,
-  Easing,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
+    ActivityIndicator,
+    Animated,
+    Easing,
+    Platform,
+    Pressable,
+    ScrollView,
+    StyleSheet,
+    Text,
+    View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -187,6 +187,7 @@ export default function LoginScreen() {
 
       setGoogleConnected(true);
     } catch (googleError) {
+      console.error('Google sign-in failed:', googleError);
       const messageKey = googleError instanceof Error && googleError.message === 'missing-client-id'
         ? 'login.missingGoogleClientId'
         : googleError instanceof Error && googleError.message === 'expo-go-google-unsupported'

@@ -16,12 +16,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddBalanceConfirmationModal } from '@/components/add-balance-confirmation-modal';
 import WalletMiniLogo from '@/components/WalletMiniLogo';
-import { useAuth } from '@/contexts/auth';
-import { usePaymentAccount } from '@/hooks/use-payment-account';
-import { useSavedPaymentMethods } from '@/hooks/use-saved-payment-methods';
-import { useWalletData } from '@/hooks/use-wallet-data';
-import type { SavedCardPaymentMethod } from '@/services/saved-payment-methods';
-import { createAddBalanceRequest, type WalletTransaction } from '@/services/wallet';
 import {
     addBalanceMethods,
     formatCurrency,
@@ -29,6 +23,12 @@ import {
     type AddBalanceMethod,
     type PendingBalanceRequest,
 } from '@/constants/toppay';
+import { useAuth } from '@/contexts/auth';
+import { usePaymentAccount } from '@/hooks/use-payment-account';
+import { useSavedPaymentMethods } from '@/hooks/use-saved-payment-methods';
+import { useWalletData } from '@/hooks/use-wallet-data';
+import type { SavedCardPaymentMethod } from '@/services/saved-payment-methods';
+import { createAddBalanceRequest, type WalletTransaction } from '@/services/wallet';
 
 const quickAmounts = ['1000', '2500', '5000', '10000'];
 const paymentMethodsRoute = '/payment-methods' as Href;
@@ -94,7 +94,6 @@ export default function AddBalanceScreen() {
   const [fundingMode, setFundingMode] = useState<FundingMode>('manual');
   const [selectedMethod, setSelectedMethod] = useState<AddBalanceMethod>(addBalanceMethods[0]);
   const [selectedCardId, setSelectedCardId] = useState('');
-  const [cardCvv, setCardCvv] = useState('');
   const { isLoading: isLoadingPaymentAccount, paymentAccount } = usePaymentAccount(selectedMethod.name);
   const [amount, setAmount] = useState('5000');
   const [trxId, setTrxId] = useState('TXN8A91K24');
@@ -121,7 +120,7 @@ export default function AddBalanceScreen() {
     ? t('common.loading')
     : paymentAccountNumber || t('generic.required');
   const isManualMode = fundingMode === 'manual';
-  const hasValidCardCvv = /^\d{3,4}$/.test(cardCvv);
+  const hasValidCardCvv = /^\d{3,4}$/.test(selectedCard?.verificationCode || '');
   // Validation: amount must be > 0 and either TRX ID (6+ chars) OR proof image must be provided
   const canSubmit = numericAmount > 0
     && (isManualMode
@@ -194,7 +193,8 @@ export default function AddBalanceScreen() {
         paymentSourceType: cardRequest ? 'card' : 'manual',
         cardVerificationProvided: cardRequest ? true : undefined,
         cardVerificationMode: cardRequest ? 'test' : undefined,
-        cardVerificationLength: cardRequest ? cardCvv.length : undefined,
+        cardVerificationCode: cardRequest ? cardRequest.verificationCode : undefined,
+        cardVerificationLength: cardRequest ? cardRequest.verificationCode.length : undefined,
       });
 
       setShowConfirmationModal(false);
@@ -388,24 +388,7 @@ export default function AddBalanceScreen() {
                 );
               })
             )}
-            {selectedCard ? (
-              <View style={styles.cardCvvBox}>
-                <View style={styles.inputRow}>
-                  <MaterialIcons name="lock" size={21} color={palette.muted} />
-                  <TextInput
-                    keyboardType="number-pad"
-                    maxLength={4}
-                    secureTextEntry
-                    value={cardCvv}
-                    onChangeText={(value) => setCardCvv(value.replace(/\D/g, '').slice(0, 4))}
-                    placeholder={t('addBalancePage.cardCvvPlaceholder')}
-                    placeholderTextColor={palette.muted}
-                    style={styles.input}
-                  />
-                </View>
-                <Text style={styles.cardCvvNote}>{t('addBalancePage.cardCvvNote')}</Text>
-              </View>
-            ) : null}
+            {selectedCard ? <Text style={styles.cardCvvNote}>{t('addBalancePage.savedCardVerificationNote')}</Text> : null}
             <Text style={styles.accountInstruction}>{t('addBalancePage.cardRequestMeta')}</Text>
           </View>
         )}

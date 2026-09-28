@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "372853268456-kmi75q793okeq1kqttle8mdfj0uq3oo2.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.toppay.app",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
           "client_id": "372853268456-0h5cr7jqn2fef87r3odfkbv8ejgjo0n6.apps.googleusercontent.com",
           "client_type": 3
         }
