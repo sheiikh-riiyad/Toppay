@@ -3,23 +3,23 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 export type WalletIconName = keyof typeof MaterialIcons.glyphMap;
 
 export const palette = {
-  background: '#F5F7F4',
+  background: '#FFF7FA',
   surface: '#FFFFFF',
-  surfaceAlt: '#EEF4F0',
-  ink: '#17231F',
-  muted: '#64736D',
-  border: '#DCE5DE',
-  primary: '#0E8065',
-  primaryDark: '#08624D',
+  surfaceAlt: '#FCECF3',
+  ink: '#301C26',
+  muted: '#796570',
+  border: '#EEDCE4',
+  primary: '#E2136E',
+  primaryDark: '#B90E59',
   coral: '#F25F46',
   amber: '#F0B33D',
   cyan: '#1E9DB2',
   danger: '#D1493F',
-  softGreen: '#E6F4EE',
+  softPrimary: '#FDE7F0',
   softCoral: '#FEEBE7',
   softAmber: '#FFF4D7',
   softCyan: '#E3F5F7',
-  softNeutral: '#EDF0EC',
+  softNeutral: '#F4EDF1',
 };
 
 export type WalletAction = {
@@ -154,7 +154,7 @@ export const quickActions: WalletAction[] = [
     subtitle: 'To any Toppay account',
     icon: 'send',
     color: palette.primary,
-    tone: palette.softGreen,
+    tone: palette.softPrimary,
   },
   {
     title: 'Cash Out',
@@ -185,7 +185,7 @@ export const secondaryServices: WalletAction[] = [
     subtitle: 'Manual approval',
     icon: 'add-card',
     color: palette.primary,
-    tone: palette.softGreen,
+    tone: palette.softPrimary,
   },
   {
     title: 'Rewards',
@@ -225,7 +225,7 @@ export const serviceCatalog: WalletAction[] = [
     subtitle: 'Fees and admission',
     icon: 'school',
     color: palette.primary,
-    tone: palette.softGreen,
+    tone: palette.softPrimary,
   },
   {
     title: 'Donation',
@@ -257,7 +257,7 @@ export const transactions: Transaction[] = [
     time: 'Today, 9:12 AM',
     icon: 'arrow-downward',
     color: palette.primary,
-    tone: palette.softGreen,
+    tone: palette.softPrimary,
   },
   {
     id: 'TP-840097',
@@ -301,7 +301,7 @@ export const transactions: Transaction[] = [
     time: 'Apr 27, 11:40 AM',
     icon: 'account-balance',
     color: palette.primary,
-    tone: palette.softGreen,
+    tone: palette.softPrimary,
   },
 ];
 
@@ -314,7 +314,7 @@ export const offerBanners: OfferBanner[] = [
     icon: 'campaign',
     color: palette.primary,
     accent: palette.amber,
-    background: '#17342D',
+    background: '#98104A',
   },
   {
     eyebrow: 'News',
@@ -343,8 +343,8 @@ export const offerBanners: OfferBanner[] = [
     action: 'Enable now',
     icon: 'security',
     color: palette.primary,
-    accent: '#DDF5EC',
-    background: '#24342F',
+    accent: '#FFD3E5',
+    background: '#661B3C',
   },
 ];
 
@@ -466,7 +466,7 @@ export const billPayBillers: BillPayBiller[] = [
     shortName: 'BREB / Palli Bidyut',
     category: 'electricity',
     color: '#0E8065',
-    tone: palette.softGreen,
+    tone: palette.softPrimary,
     icon: 'electric-bolt',
   },
   {
@@ -506,7 +506,7 @@ export const billPayBillers: BillPayBiller[] = [
     shortName: 'BTCL',
     category: 'internet',
     color: '#0E8065',
-    tone: palette.softGreen,
+    tone: palette.softPrimary,
     icon: 'router',
   },
   {
@@ -578,7 +578,7 @@ export const billPayBillers: BillPayBiller[] = [
     shortName: 'ADN',
     category: 'internet',
     color: palette.primary,
-    tone: palette.softGreen,
+    tone: palette.softPrimary,
     icon: 'router',
   },
   {
@@ -642,7 +642,7 @@ export const billPayBillers: BillPayBiller[] = [
     shortName: 'Aamra',
     category: 'internet',
     color: palette.primary,
-    tone: palette.softGreen,
+    tone: palette.softPrimary,
     icon: 'router',
   },
   {

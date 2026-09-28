@@ -18,7 +18,7 @@ function getPendingIcon(transaction: WalletTransaction): {
     return {
       icon: 'account-balance' as const,
       color: palette.primary,
-      tone: palette.softGreen,
+      tone: palette.softPrimary,
     };
   }
 

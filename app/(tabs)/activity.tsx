@@ -32,7 +32,7 @@ function getTransactionIcon(transaction: WalletTransaction) {
     return {
       icon: 'account-balance' as const,
       color: palette.primary,
-      tone: palette.softGreen,
+      tone: palette.softPrimary,
     };
   }
 
@@ -71,7 +71,7 @@ function getTransactionIcon(transaction: WalletTransaction) {
   return {
     icon: 'receipt-long' as const,
     color: palette.primary,
-    tone: palette.softGreen,
+    tone: palette.softPrimary,
   };
 }
 
@@ -159,7 +159,7 @@ export default function ActivityScreen() {
             amount={formatCurrency(moneyIn)}
             icon="arrow-downward"
             color={palette.primary}
-            tone={palette.softGreen}
+            tone={palette.softPrimary}
           />
           <SummaryCard
             title={t('activityPage.moneyOut')}
@@ -266,7 +266,7 @@ function StatusPill({ status }: { status: Transaction['status'] }) {
   const { t } = useTranslation();
   const tone =
     status === 'Completed'
-      ? palette.softGreen
+      ? palette.softPrimary
       : status === 'Pending'
         ? palette.softAmber
         : palette.softCoral;

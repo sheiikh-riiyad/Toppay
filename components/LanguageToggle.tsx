@@ -65,7 +65,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
     marginRight: 12,
   },
   textContainer: {

@@ -1,6 +1,6 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter, type Href } from 'expo-router';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
@@ -87,12 +87,13 @@ function makeCardReviewMethod(card?: SavedCardPaymentMethod): AddBalanceMethod {
 
 export default function AddBalanceScreen() {
   const router = useRouter();
+  const { provider } = useLocalSearchParams<{ provider?: string }>();
   const { t } = useTranslation();
   const { account } = useAuth();
   const { pendingTransactions } = useWalletData(account?.uid);
   const { cards: savedCards, isLoading: isLoadingSavedMethods } = useSavedPaymentMethods(account?.uid);
   const [fundingMode, setFundingMode] = useState<FundingMode>('manual');
-  const [selectedMethod, setSelectedMethod] = useState<AddBalanceMethod>(addBalanceMethods[0]);
+  const [selectedMethod, setSelectedMethod] = useState<AddBalanceMethod>(() => addBalanceMethods.find(method => provider === 'Bank' ? method.type === 'Bank account' : method.name === provider) ?? addBalanceMethods[0]);
   const [selectedCardId, setSelectedCardId] = useState('');
   const { isLoading: isLoadingPaymentAccount, paymentAccount } = usePaymentAccount(selectedMethod.name);
   const [amount, setAmount] = useState('5000');
@@ -402,7 +403,7 @@ export default function AddBalanceScreen() {
               value={amount}
               onChangeText={setAmount}
               placeholder="0"
-              placeholderTextColor="#9AA7A1"
+              placeholderTextColor="#96838C"
               style={styles.amountInput}
             />
           </View>
@@ -642,7 +643,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
   },
   heroCard: {
     minHeight: 94,
@@ -670,7 +671,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   heroMeta: {
-    color: '#CBECE2',
+    color: '#FFE0ED',
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 17,
@@ -747,7 +748,7 @@ const styles = StyleSheet.create({
     padding: 12,
   },
   modeButtonActive: {
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
     borderColor: palette.primary,
   },
   modeCopy: {
@@ -785,7 +786,7 @@ const styles = StyleSheet.create({
   },
   methodCardActive: {
     borderColor: palette.primary,
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
   },
   methodName: {
     color: palette.ink,
@@ -832,7 +833,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
   },
   accountNumber: {
     color: palette.ink,
@@ -861,7 +862,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 5,
     borderRadius: 8,
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
     paddingHorizontal: 10,
   },
   addCardButtonText: {
@@ -920,7 +921,7 @@ const styles = StyleSheet.create({
   },
   savedCardRowActive: {
     borderColor: palette.primary,
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
   },
   savedCardIcon: {
     width: 42,
@@ -966,7 +967,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
     borderRadius: 8,
     paddingHorizontal: 14,
   },
@@ -1042,7 +1043,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
   },
   uploadCopy: {
     flex: 1,
@@ -1252,7 +1253,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   primaryButtonDisabled: {
-    backgroundColor: '#A8B7B0',
+    backgroundColor: '#B99AA8',
   },
   primaryButtonText: {
     color: palette.surface,

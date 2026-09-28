@@ -1,6 +1,7 @@
+import TransactionStep from '@/components/TransactionStep';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Pressable,
@@ -10,7 +11,6 @@ import {
     TextInput,
     View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import WalletMiniLogo from '@/components/WalletMiniLogo';
 import { useAuth } from '@/contexts/auth';
@@ -27,6 +27,8 @@ const sendMoneyMethods = cashOutMethods.filter(m => ['bKash', 'Nagad', 'Rocket']
 
 export default function SendMoneyScreen() {
   const router = useRouter();
+  const { provider } = useLocalSearchParams<{ provider?: string }>();
+  const [step, setStep] = useState(0);
   const { t } = useTranslation();
   const { account } = useAuth();
   const { bonusRate } = useBonusRate('sendmoney');
@@ -40,16 +42,14 @@ export default function SendMoneyScreen() {
   } = useDeviceContacts();
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [phone, setPhone] = useState('');
-  const [selectedMethod, setSelectedMethod] = useState<CashOutMethod>(sendMoneyMethods[0]);
-  const [amount, setAmount] = useState('2500');
-  const [note, setNote] = useState('Dinner and ride share');
+  const [selectedMethod, setSelectedMethod] = useState<CashOutMethod>(() => sendMoneyMethods.find(method => provider === 'Bank' ? method.type === 'Bank account' : method.name === provider) ?? sendMoneyMethods[0]);
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
 
   const balance = summary?.balance ?? 0;
   const numericAmount = Number(amount) || 0;
   const bonusAmount = calculateBonus(numericAmount, bonusRate.percentis);
-  const remainingBalance = Math.max(balance - numericAmount, 0);
   const canContinue = numericAmount > 0 && phone.trim().length >= 8;
-  const recipientName = selectedContact?.name || phone || t('generic.recipient');
   const contactsMessageKey = permissionStatus === 'unavailable'
     ? 'sendMoneyPage.contactsUnavailable'
     : hasContactsPermission
@@ -57,13 +57,6 @@ export default function SendMoneyScreen() {
       : 'sendMoneyPage.contactsPermission';
   const canRequestContacts = permissionStatus !== 'denied' && permissionStatus !== 'unavailable';
 
-  const recipientLine = useMemo(
-    () => t('sendMoneyPage.recipientReceives', {
-      name: recipientName,
-      amount: formatCurrency(numericAmount),
-    }),
-    [numericAmount, recipientName, t]
-  );
 
   function chooseContact(contact: Contact) {
     setSelectedContact(contact);
@@ -90,34 +83,12 @@ export default function SendMoneyScreen() {
     });
   }
 
+  const stepValid = step === 1 ? phone.trim().length >= 8 : step === 2 ? canContinue && Number.isFinite(numericAmount) : true;
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()} accessibilityRole="button">
-            <MaterialIcons name="arrow-back" size={22} color={palette.ink} />
-          </Pressable>
-          <View style={styles.headerCopy}>
-            <Text style={styles.kicker}>{t('sendMoneyPage.kicker')}</Text>
-            <Text style={styles.title}>{t('sendMoneyPage.title')}</Text>
-          </View>
-          <View style={styles.secureBadge}>
-            <MaterialIcons name="shield" size={17} color={palette.primary} />
-          </View>
-        </View>
-
-        <View style={styles.heroCard}>
-          <View style={styles.heroIcon}>
-            <MaterialIcons name="send" size={28} color={palette.surface} />
-          </View>
-          <View style={styles.heroCopy}>
-            <Text style={styles.heroTitle}>{t('sendMoneyPage.fastTransfer')}</Text>
-            <Text style={styles.heroMeta}>{t('sendMoneyPage.balanceLine', { amount: formatCurrency(balance) })}</Text>
-          </View>
-          <Text style={styles.heroTag}>{t('sendMoneyPage.bonusTag', { rate: bonusRate.label })}</Text>
-        </View>
-
-        <View style={styles.panel}>
+    <TransactionStep title={t('sendMoneyPage.title')} step={step + 1} total={5}
+      onBack={() => step > 0 ? setStep(step - 1) : router.back()}
+      onNext={() => step < 2 ? setStep(step + 1) : handleContinue()} disabled={!stepValid}>
+      {step === 0 ? (<>        <View style={styles.panel}>
           <Text style={styles.panelTitle}>{t('generic.paymentMethod')}</Text>
           <View style={styles.methodGrid}>
             {sendMoneyMethods.map((method) => {
@@ -136,7 +107,8 @@ export default function SendMoneyScreen() {
           </View>
         </View>
 
-        <View style={styles.panel}>
+</>) : null}
+      {step === 1 ? (<>        <View style={styles.panel}>
           <Text style={styles.panelTitle}>{t('generic.recipient')}</Text>
           <View style={styles.inputRow}>
             <MaterialIcons name="contact-phone" size={21} color={palette.muted} />
@@ -190,7 +162,10 @@ export default function SendMoneyScreen() {
           )}
         </View>
 
-        <View style={styles.amountPanel}>
+</>) : null}
+      {step === 2 ? (<>
+        <Text style={styles.stepBalance}>{t('home.availableBalance')}: {formatCurrency(balance)}</Text>
+                <View style={styles.amountPanel}>
           <Text style={styles.panelTitle}>{t('generic.amount')}</Text>
           <View style={styles.amountBox}>
             <Text style={styles.currencyPrefix}>BDT</Text>
@@ -199,7 +174,7 @@ export default function SendMoneyScreen() {
               value={amount}
               onChangeText={setAmount}
               placeholder="0"
-              placeholderTextColor="#9AA7A1"
+              placeholderTextColor="#96838C"
               style={styles.amountInput}
             />
           </View>
@@ -226,6 +201,7 @@ export default function SendMoneyScreen() {
           <View style={styles.inputRow}>
             <MaterialIcons name="notes" size={21} color={palette.muted} />
             <TextInput
+              maxLength={80}
               value={note}
               onChangeText={setNote}
               placeholder={t('sendMoneyPage.addNotePlaceholder')}
@@ -235,150 +211,16 @@ export default function SendMoneyScreen() {
           </View>
         </View>
 
-        <View style={styles.summaryCard}>
-          <SummaryRow label={t('generic.recipient')} value={recipientName} />
-          <SummaryRow label={t('sendMoneyPage.transferAmount')} value={formatCurrency(numericAmount)} />
-          <SummaryRow label={t('generic.charge')} value="BDT 0.00" />
-          <SummaryRow label={`${t('generic.bonus')} (${bonusRate.label})`} value={formatCurrency(bonusAmount)} />
-          <View style={styles.summaryDivider} />
-          <SummaryRow label={t('generic.remainingBalance')} value={formatCurrency(remainingBalance)} strong />
-        </View>
 
-        <View style={styles.memoryCard}>
-          <View style={styles.memoryIcon}>
-            <MaterialIcons name="favorite" size={20} color={palette.coral} />
-          </View>
-          <View style={styles.memoryCopy}>
-            <Text style={styles.memoryTitle}>{recipientLine}</Text>
-            <Text style={styles.memoryMeta}>{note || t('sendMoneyPage.personalTransfer')}</Text>
-          </View>
-        </View>
-
-        <Pressable
-          style={[styles.primaryButton, !canContinue && styles.primaryButtonDisabled]}
-          disabled={!canContinue}
-          onPress={handleContinue}
-          accessibilityRole="button">
-          <MaterialIcons name="lock" size={18} color={palette.surface} />
-          <Text style={styles.primaryButtonText}>{t('generic.continueSecurely')}</Text>
-        </Pressable>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-function SummaryRow({
-  label,
-  value,
-  strong,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
-  return (
-    <View style={styles.summaryRow}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={[styles.summaryValue, strong && styles.summaryValueStrong]}>{value}</Text>
-    </View>
+      </>) : null}
+    </TransactionStep>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: palette.background,
-  },
-  content: {
-    padding: 18,
-    paddingBottom: 32,
-    gap: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.border,
-  },
-  headerCopy: {
-    flex: 1,
-  },
-  kicker: {
-    color: palette.primary,
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  title: {
-    color: palette.ink,
-    fontSize: 27,
-    fontWeight: '900',
-    marginTop: 2,
-  },
-  secureBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.softGreen,
-  },
-  heroCard: {
-    minHeight: 92,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: palette.primary,
-    borderRadius: 8,
-    padding: 15,
-  },
-  heroIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.primaryDark,
-  },
-  heroCopy: {
-    flex: 1,
-  },
-  heroTitle: {
-    color: palette.surface,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  heroMeta: {
-    color: '#CBECE2',
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 5,
-  },
-  heroTag: {
-    color: palette.primaryDark,
-    backgroundColor: '#DDF5EC',
-    borderRadius: 8,
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    fontSize: 11,
-    fontWeight: '900',
-  },
+  stepBalance: { color: palette.muted, fontSize: 13 },
   panel: {
-    backgroundColor: palette.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 14,
-    gap: 12,
+    gap: 14,
   },
   panelTitle: {
     color: palette.ink,
@@ -449,7 +291,7 @@ const styles = StyleSheet.create({
   },
   contactCardActive: {
     borderColor: palette.primary,
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
   },
   avatar: {
     width: 46,
@@ -476,19 +318,14 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   amountPanel: {
-    backgroundColor: palette.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 14,
-    gap: 12,
+    gap: 16,
   },
   amountBox: {
     minHeight: 76,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
     borderRadius: 8,
     paddingHorizontal: 14,
   },
@@ -530,69 +367,6 @@ const styles = StyleSheet.create({
   quickAmountTextActive: {
     color: palette.surface,
   },
-  summaryCard: {
-    backgroundColor: palette.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 14,
-    gap: 11,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  summaryLabel: {
-    flex: 1,
-    color: palette.muted,
-    fontSize: 13,
-    fontWeight: '700',
-  },
-  summaryValue: {
-    color: palette.ink,
-    fontSize: 13,
-    fontWeight: '900',
-    textAlign: 'right',
-  },
-  summaryValueStrong: {
-    color: palette.primary,
-    fontSize: 15,
-  },
-  summaryDivider: {
-    height: 1,
-    backgroundColor: palette.border,
-  },
-  memoryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: palette.softCoral,
-    borderRadius: 8,
-    padding: 14,
-  },
-  memoryIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.surface,
-  },
-  memoryCopy: {
-    flex: 1,
-  },
-  memoryTitle: {
-    color: palette.ink,
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  memoryMeta: {
-    color: palette.muted,
-    fontSize: 12,
-    marginTop: 4,
-  },
   methodGrid: {
     flexDirection: 'row',
     gap: 12,
@@ -617,22 +391,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     textAlign: 'center',
-  },
-  primaryButton: {
-    height: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: palette.primary,
-    borderRadius: 8,
-  },
-  primaryButtonDisabled: {
-    backgroundColor: '#A8B7B0',
-  },
-  primaryButtonText: {
-    color: palette.surface,
-    fontSize: 15,
-    fontWeight: '900',
   },
 });

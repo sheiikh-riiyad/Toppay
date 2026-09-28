@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
   },
   heroCard: {
     minHeight: 92,
@@ -285,7 +285,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   heroMeta: {
-    color: '#CBECE2',
+    color: '#FFE0ED',
     fontSize: 12,
     fontWeight: '700',
     marginTop: 5,
@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 5,
@@ -399,7 +399,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   confirmButtonDisabled: {
-    backgroundColor: '#A8B7B0',
+    backgroundColor: '#B99AA8',
   },
   confirmButtonActive: {
     backgroundColor: palette.primaryDark,

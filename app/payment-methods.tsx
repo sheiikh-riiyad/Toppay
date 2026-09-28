@@ -436,7 +436,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   heroMeta: {
-    color: '#CBECE2',
+    color: '#FFE0ED',
     fontSize: 12,
     fontWeight: '700',
     lineHeight: 17,
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     borderRadius: 8,
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
     padding: 12,
   },
   securityNoteText: {
@@ -565,7 +565,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
   },
   savedCopy: {
     flex: 1,

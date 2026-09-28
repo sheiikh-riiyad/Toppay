@@ -195,7 +195,7 @@ export default function MobileRechargeScreen() {
               value={amount}
               onChangeText={setAmount}
               placeholder="0"
-              placeholderTextColor="#9AA7A1"
+              placeholderTextColor="#96838C"
               style={styles.amountInput}
             />
           </View>

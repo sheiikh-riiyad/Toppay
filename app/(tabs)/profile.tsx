@@ -26,7 +26,7 @@ const accountRows: AccountRow[] = [
     route: '/personal-information' as const,
     icon: 'account-circle' as WalletIconName,
     color: palette.primary,
-    tone: palette.softGreen,
+    tone: palette.softPrimary,
   },
   {
     titleKey: 'profilePage.security',
@@ -267,7 +267,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 5,
@@ -292,7 +292,7 @@ const styles = StyleSheet.create({
   },
   limitTitle: {
     flex: 1,
-    color: '#D8F4EA',
+    color: '#FFE0ED',
     fontSize: 13,
     fontWeight: '800',
   },
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   limitMeta: {
-    color: '#D8F4EA',
+    color: '#FFE0ED',
     fontSize: 12,
     fontWeight: '800',
   },

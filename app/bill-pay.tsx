@@ -1,16 +1,15 @@
+import TransactionStep from '@/components/TransactionStep';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth';
 import { useWalletData } from '@/hooks/use-wallet-data';
@@ -32,6 +31,7 @@ function supportsPrepaidPostpaid(biller: BillPayBiller) {
 
 export default function BillPayScreen() {
   const router = useRouter();
+  const [step, setStep] = useState(0);
   const { t } = useTranslation();
   const { account } = useAuth();
   const { summary } = useWalletData(account?.uid);
@@ -44,10 +44,11 @@ export default function BillPayScreen() {
     () => billPayBillers.find((biller) => biller.category === 'electricity') ?? billPayBillers[0]
   );
   const [searchQuery, setSearchQuery] = useState('');
+  const [billerPage, setBillerPage] = useState(0);
   const [billingId, setBillingId] = useState('');
   const [billDate, setBillDate] = useState('');
   const [billType, setBillType] = useState<(typeof billTypes)[number]>('prepaid');
-  const [amount, setAmount] = useState('1000');
+  const [amount, setAmount] = useState('');
 
   const filteredBillers = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
@@ -63,7 +64,6 @@ export default function BillPayScreen() {
   }, [categoryBillers, searchQuery]);
   const balance = summary?.balance ?? 0;
   const numericAmount = Number(amount) || 0;
-  const remainingBalance = Math.max(balance - numericAmount, 0);
   const needsBillDate = selectedBiller.category === 'electricity';
   const needsBillType = supportsPrepaidPostpaid(selectedBiller);
   const canContinue = numericAmount > 0
@@ -74,6 +74,7 @@ export default function BillPayScreen() {
   function chooseCategory(category: BillPayCategory) {
     setSelectedCategory(category);
     setSearchQuery('');
+    setBillerPage(0);
     setSelectedBiller(billPayBillers.find((biller) => biller.category === category) ?? billPayBillers[0]);
   }
 
@@ -92,33 +93,12 @@ export default function BillPayScreen() {
     });
   }
 
+  const stepValid = step === 1 ? billingId.trim().length >= 3 && (!needsBillDate || billDate.trim().length >= 6) : step === 2 ? canContinue && Number.isFinite(numericAmount) : true;
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()} accessibilityRole="button">
-            <MaterialIcons name="arrow-back" size={22} color={palette.ink} />
-          </Pressable>
-          <View style={styles.headerCopy}>
-            <Text style={styles.kicker}>{t('billPayPage.kicker')}</Text>
-            <Text style={styles.title}>{t('billPayPage.title')}</Text>
-          </View>
-          <View style={styles.secureBadge}>
-            <MaterialIcons name="receipt-long" size={20} color={palette.amber} />
-          </View>
-        </View>
-
-        <View style={styles.heroCard}>
-          <View style={styles.heroIcon}>
-            <MaterialIcons name="payments" size={28} color={palette.surface} />
-          </View>
-          <View style={styles.heroCopy}>
-            <Text style={styles.heroTitle}>{t('billPayPage.heroTitle')}</Text>
-            <Text style={styles.heroMeta}>{t('billPayPage.balanceLine', { amount: formatCurrency(balance) })}</Text>
-          </View>
-        </View>
-
-        <View style={styles.categoryTabs}>
+    <TransactionStep title={t('billPayPage.title')} step={step + 1} total={5}
+      onBack={() => step > 0 ? setStep(step - 1) : router.back()}
+      onNext={() => step < 2 ? setStep(step + 1) : handleContinue()} disabled={!stepValid}>
+      {step === 0 ? (<>        <View style={styles.categoryTabs}>
           {categories.map((category) => {
             const active = category === selectedCategory;
 
@@ -147,21 +127,17 @@ export default function BillPayScreen() {
             <MaterialIcons name="search" size={20} color={palette.muted} />
             <TextInput
               value={searchQuery}
-              onChangeText={setSearchQuery}
+              onChangeText={(value) => { setSearchQuery(value); setBillerPage(0); }}
               placeholder={t('billPayPage.searchBiller')}
               placeholderTextColor={palette.muted}
               style={styles.searchInput}
             />
           </View>
-          <ScrollView
-            nestedScrollEnabled
-            style={styles.billerScroll}
-            contentContainerStyle={styles.billerList}
-            showsVerticalScrollIndicator={false}>
+          <View style={styles.billerList}>
             {filteredBillers.length === 0 ? (
               <Text style={styles.emptyText}>{t('billPayPage.noBillersFound')}</Text>
             ) : (
-              filteredBillers.map((biller) => {
+              filteredBillers.slice(billerPage * 3, billerPage * 3 + 3).map((biller) => {
                 const active = biller.name === selectedBiller.name;
 
                 return (
@@ -182,10 +158,16 @@ export default function BillPayScreen() {
                 );
               })
             )}
-          </ScrollView>
+          </View>
+          <View style={styles.pager}>
+            <Pressable disabled={billerPage === 0} onPress={() => setBillerPage(value => value - 1)} accessibilityRole="button" style={styles.pageButton}><Text style={{ color: billerPage === 0 ? palette.muted : palette.primary }}>{t('common.previous')}</Text></Pressable>
+            <Text>{billerPage + 1} / {Math.max(1, Math.ceil(filteredBillers.length / 3))}</Text>
+            <Pressable disabled={(billerPage + 1) * 3 >= filteredBillers.length} onPress={() => setBillerPage(value => value + 1)} accessibilityRole="button" style={styles.pageButton}><Text style={{ color: (billerPage + 1) * 3 >= filteredBillers.length ? palette.muted : palette.primary }}>{t('common.next')}</Text></Pressable>
+          </View>
         </View>
 
-        <View style={styles.panel}>
+</>) : null}
+      {step === 1 ? (<>        <View style={styles.panel}>
           <Text style={styles.panelTitle}>{t('billPayPage.billingId')}</Text>
           <View style={styles.inputRow}>
             <MaterialIcons name="confirmation-number" size={21} color={palette.muted} />
@@ -231,7 +213,10 @@ export default function BillPayScreen() {
           ) : null}
         </View>
 
-        <View style={styles.amountPanel}>
+</>) : null}
+      {step === 2 ? (<>
+        <Text style={styles.stepBalance}>{t('home.availableBalance')}: {formatCurrency(balance)}</Text>
+                <View style={styles.amountPanel}>
           <Text style={styles.panelTitle}>{t('generic.amount')}</Text>
           <View style={styles.amountBox}>
             <Text style={styles.currencyPrefix}>BDT</Text>
@@ -240,7 +225,7 @@ export default function BillPayScreen() {
               value={amount}
               onChangeText={setAmount}
               placeholder="0"
-              placeholderTextColor="#9AA7A1"
+              placeholderTextColor="#96838C"
               style={styles.amountInput}
             />
           </View>
@@ -266,129 +251,16 @@ export default function BillPayScreen() {
           </View>
         </View>
 
-        <View style={styles.summaryCard}>
-          <SummaryRow label={t('billPayPage.biller')} value={selectedBiller.shortName} />
-          <SummaryRow label={t('billPayPage.billingId')} value={billingId || t('generic.required')} />
-          {needsBillDate ? (
-            <SummaryRow label={t('billPayPage.billDate')} value={billDate || t('generic.required')} />
-          ) : null}
-          {needsBillType ? (
-            <SummaryRow label={t('billPayPage.billType')} value={t(`billPayPage.billTypes.${billType}`)} />
-          ) : null}
-          <SummaryRow label={t('generic.amount')} value={formatCurrency(numericAmount)} />
-          <View style={styles.summaryDivider} />
-          <SummaryRow label={t('generic.remainingBalance')} value={formatCurrency(remainingBalance)} strong />
-        </View>
 
-        <Pressable
-          style={[styles.primaryButton, !canContinue && styles.primaryButtonDisabled]}
-          disabled={!canContinue}
-          onPress={handleContinue}
-          accessibilityRole="button">
-          <MaterialIcons name="lock" size={18} color={palette.surface} />
-          <Text style={styles.primaryButtonText}>{t('generic.continueSecurely')}</Text>
-        </Pressable>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-function SummaryRow({
-  label,
-  value,
-  strong,
-}: {
-  label: string;
-  value: string;
-  strong?: boolean;
-}) {
-  return (
-    <View style={styles.summaryRow}>
-      <Text style={styles.summaryLabel}>{label}</Text>
-      <Text style={[styles.summaryValue, strong && styles.summaryValueStrong]}>{value}</Text>
-    </View>
+      </>) : null}
+    </TransactionStep>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: palette.background,
-  },
-  content: {
-    padding: 18,
-    paddingBottom: 32,
-    gap: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.border,
-  },
-  headerCopy: {
-    flex: 1,
-  },
-  kicker: {
-    color: palette.amber,
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  title: {
-    color: palette.ink,
-    fontSize: 27,
-    fontWeight: '900',
-    marginTop: 2,
-  },
-  secureBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.softAmber,
-  },
-  heroCard: {
-    minHeight: 92,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: palette.amber,
-    borderRadius: 8,
-    padding: 15,
-  },
-  heroIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.22)',
-  },
-  heroCopy: {
-    flex: 1,
-  },
-  heroTitle: {
-    color: palette.surface,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  heroMeta: {
-    color: '#FFF7DE',
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 5,
-  },
+  pager: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  pageButton: { minHeight: 44, justifyContent: "center", paddingHorizontal: 8 },
+  stepBalance: { color: palette.muted, fontSize: 13 },
   categoryTabs: {
     minHeight: 52,
     flexDirection: 'row',
@@ -419,12 +291,7 @@ const styles = StyleSheet.create({
     color: palette.surface,
   },
   panel: {
-    backgroundColor: palette.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 14,
-    gap: 12,
+    gap: 14,
   },
   panelTitle: {
     color: palette.ink,
@@ -447,9 +314,6 @@ const styles = StyleSheet.create({
     color: palette.ink,
     fontSize: 14,
     fontWeight: '700',
-  },
-  billerScroll: {
-    maxHeight: 320,
   },
   billerList: {
     gap: 9,
@@ -540,12 +404,7 @@ const styles = StyleSheet.create({
     color: palette.surface,
   },
   amountPanel: {
-    backgroundColor: palette.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 14,
-    gap: 12,
+    gap: 16,
   },
   amountBox: {
     minHeight: 76,
@@ -593,56 +452,5 @@ const styles = StyleSheet.create({
   },
   quickAmountTextActive: {
     color: palette.surface,
-  },
-  summaryCard: {
-    backgroundColor: palette.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 14,
-    gap: 12,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  summaryLabel: {
-    color: palette.muted,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  summaryValue: {
-    flex: 1,
-    color: palette.ink,
-    fontSize: 13,
-    fontWeight: '900',
-    textAlign: 'right',
-  },
-  summaryValueStrong: {
-    color: palette.amber,
-    fontSize: 14,
-  },
-  summaryDivider: {
-    height: 1,
-    backgroundColor: palette.border,
-  },
-  primaryButton: {
-    minHeight: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    backgroundColor: palette.amber,
-    borderRadius: 8,
-  },
-  primaryButtonDisabled: {
-    opacity: 0.45,
-  },
-  primaryButtonText: {
-    color: palette.surface,
-    fontSize: 15,
-    fontWeight: '900',
   },
 });

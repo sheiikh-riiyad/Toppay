@@ -1,3 +1,4 @@
+import TransactionStep from '@/components/TransactionStep';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
@@ -5,7 +6,6 @@ import { useTranslation } from 'react-i18next';
 import {
     Animated,
     Pressable,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
@@ -20,6 +20,7 @@ import { createCashOutRequest } from '@/services/wallet';
 
 export default function CashOutConfirmationScreen() {
   const router = useRouter();
+  const [reviewed, setReviewed] = useState(false);
   const { t } = useTranslation();
   const params = useLocalSearchParams();
   const { account } = useAuth();
@@ -69,10 +70,10 @@ export default function CashOutConfirmationScreen() {
       setPinError(true);
       return;
     }
-    
+
     setIsPressing(true);
     progressAnim.setValue(0);
-    
+
     // Animate progress over 1.5 seconds
     Animated.timing(progressAnim, {
       toValue: 1,
@@ -110,9 +111,9 @@ export default function CashOutConfirmationScreen() {
     if (submitLockRef.current) {
       return;
     }
-    
+
     setIsPressing(false);
-    
+
     // Reset animations
     Animated.parallel([
       Animated.timing(progressAnim, {
@@ -221,33 +222,43 @@ export default function CashOutConfirmationScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()} accessibilityRole="button">
-            <MaterialIcons name="arrow-back" size={22} color={palette.ink} />
+    <TransactionStep title={t(reviewed ? 'transactionSteps.pin' : 'transactionSteps.review')} step={reviewed ? 5 : 4} total={5}
+      busy={isSubmitting} onBack={() => { handlePressOut(); if (reviewed) { setReviewed(false); setPin(''); } else { router.back(); } }}
+      onNext={() => setReviewed(true)}
+      footer={reviewed ? (<>        <Animated.View style={{ transform: [{ scale: buttonScaleAnim }] }}>
+          <Pressable
+            style={[
+              styles.primaryButton,
+              (pin.length !== 4 || isSubmitting) && styles.primaryButtonDisabled,
+            ]}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            disabled={pin.length !== 4 || isSubmitting}
+            accessibilityRole="button">
+            {isPressing && (
+              <Animated.View
+                style={[
+                  styles.progressOverlay,
+                  {
+                    width: progressAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: ['0%', '100%'],
+                    }),
+                  },
+                ]}
+              />
+            )}
+            <View style={styles.buttonContent}>
+              <MaterialIcons name="verified-user" size={20} color={palette.surface} />
+              <Text style={styles.primaryButtonText}>
+                {isSubmitting ? t('common.loading') : t('generic.longPressToConfirm')}
+              </Text>
+            </View>
           </Pressable>
-          <View style={styles.headerCopy}>
-            <Text style={styles.kicker}>{t('cashOutPage.confirmKicker')}</Text>
-            <Text style={styles.title}>{t('cashOutPage.confirmTitle')}</Text>
-          </View>
-          <View style={styles.secureBadge}>
-            <MaterialIcons name="lock" size={20} color={palette.coral} />
-          </View>
-        </View>
+        </Animated.View>
 
-        <View style={styles.heroCard}>
-          <View style={styles.heroIcon}>
-            <MaterialIcons name="security" size={28} color={palette.surface} />
-          </View>
-          <View style={styles.heroCopy}>
-            <Text style={styles.heroTitle}>{t('cashOutPage.secureConfirmation')}</Text>
-            <Text style={styles.heroMeta}>{t('cashOutPage.secureConfirmationMeta')}</Text>
-          </View>
-        </View>
-
-        {/* Transaction Summary */}
-        <View style={styles.summaryCard}>
+</>) : undefined}>
+      {!reviewed ? (<>        <View style={styles.summaryCard}>
           <Text style={styles.panelTitle}>{t('generic.transactionSummary')}</Text>
           <View style={styles.summaryDivider} />
 
@@ -261,8 +272,10 @@ export default function CashOutConfirmationScreen() {
           <SummaryRow label={t('generic.totalDebit')} value={formatCurrency(totalDebit)} strong />
         </View>
 
-        {/* PIN Input Section */}
-        <View style={styles.pinPanel}>
+
+</>) : (<>
+        <Text style={styles.compactAmount}>{formatCurrency(totalDebit)}</Text>
+                <View style={styles.pinPanel}>
           <Text style={styles.pinLabel}>{t('cashOutPage.enterPin')}</Text>
           <View style={styles.pinInputContainer}>
             {[0, 1, 2, 3].map((index) => (
@@ -302,55 +315,9 @@ export default function CashOutConfirmationScreen() {
           ) : null}
         </View>
 
-        {/* Security Info */}
-        <View style={styles.securityNote}>
-          <MaterialIcons name="info" size={20} color={palette.primary} />
-          <Text style={styles.securityText}>
-            {t('cashOutPage.pinSecurity')}
-          </Text>
-        </View>
 
-        {/* Long Press Button */}
-        <View style={styles.instructionContainer}>
-          <MaterialIcons name="touch-app" size={18} color={palette.coral} />
-          <Text style={styles.instructionText}>{t('cashOutPage.longPressInstruction')}</Text>
-        </View>
-
-        <Animated.View style={{ transform: [{ scale: buttonScaleAnim }] }}>
-          <Pressable
-            style={[
-              styles.primaryButton,
-              (pin.length !== 4 || isSubmitting) && styles.primaryButtonDisabled,
-            ]}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            disabled={pin.length !== 4 || isSubmitting}
-            accessibilityRole="button">
-            {isPressing && (
-              <Animated.View
-                style={[
-                  styles.progressOverlay,
-                  {
-                    width: progressAnim.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: ['0%', '100%'],
-                    }),
-                  },
-                ]}
-              />
-            )}
-            <View style={styles.buttonContent}>
-              <MaterialIcons name="verified-user" size={20} color={palette.surface} />
-              <Text style={styles.primaryButtonText}>
-                {isSubmitting ? t('common.loading') : t('generic.longPressToConfirm')}
-              </Text>
-            </View>
-          </Pressable>
-        </Animated.View>
-
-        <Text style={styles.footerText}>{t('cashOutPage.cannotUndo')}</Text>
-      </ScrollView>
-    </SafeAreaView>
+      </>)}
+    </TransactionStep>
   );
 }
 
@@ -372,91 +339,13 @@ function SummaryRow({
 }
 
 const styles = StyleSheet.create({
+  compactAmount: { fontSize: 28, color: palette.primary, fontWeight: "700", textAlign: "center", marginVertical: 12 },
   screen: {
     flex: 1,
     backgroundColor: palette.background,
   },
-  content: {
-    padding: 18,
-    paddingBottom: 32,
-    gap: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.border,
-  },
-  headerCopy: {
-    flex: 1,
-  },
-  kicker: {
-    color: palette.coral,
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  title: {
-    color: palette.ink,
-    fontSize: 27,
-    fontWeight: '900',
-    marginTop: 2,
-  },
-  secureBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.softCoral,
-  },
-  heroCard: {
-    minHeight: 100,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 13,
-    backgroundColor: palette.coral,
-    borderRadius: 8,
-    padding: 15,
-  },
-  heroIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255,255,255,0.2)',
-  },
-  heroCopy: {
-    flex: 1,
-  },
-  heroTitle: {
-    color: palette.surface,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  heroMeta: {
-    color: '#FFE3DD',
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 5,
-  },
   summaryCard: {
-    backgroundColor: palette.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 14,
-    gap: 11,
+    padding: 8, gap: 8,
   },
   panelTitle: {
     color: palette.ink,
@@ -464,10 +353,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   summaryRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12, minHeight: 34,
   },
   summaryLabel: {
     flex: 1,
@@ -476,6 +362,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   summaryValue: {
+    flexShrink: 1,
     color: palette.ink,
     fontSize: 13,
     fontWeight: '900',
@@ -556,33 +443,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flex: 1,
   },
-  securityNote: {
-    minHeight: 50,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    backgroundColor: palette.softGreen,
-    borderRadius: 8,
-    padding: 12,
-  },
-  securityText: {
-    flex: 1,
-    color: palette.ink,
-    fontSize: 12,
-    fontWeight: '800',
-  },
-  instructionContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 12,
-  },
-  instructionText: {
-    color: palette.coral,
-    fontSize: 13,
-    fontWeight: '800',
-  },
   primaryButton: {
     minHeight: 54,
     flexDirection: 'row',
@@ -618,13 +478,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '900',
     textAlign: 'center',
-  },
-  footerText: {
-    color: palette.muted,
-    fontSize: 11,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginTop: 8,
   },
   successContainer: {
     flex: 1,

@@ -229,7 +229,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
     marginBottom: 14,
   },
   title: {
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
   },
   summaryCopy: {
     flex: 1,

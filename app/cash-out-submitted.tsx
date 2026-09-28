@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
   },
   successCard: {
     minHeight: 160,
@@ -332,7 +332,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
     borderRadius: 8,
     padding: 12,
   },

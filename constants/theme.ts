@@ -4,25 +4,26 @@
  */
 
 import { Platform } from 'react-native';
+import { palette } from './toppay';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+const tintColorLight = palette.primary;
+const tintColorDark = '#FF80B6';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: palette.ink,
+    background: palette.background,
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: palette.muted,
+    tabIconDefault: palette.muted,
     tabIconSelected: tintColorLight,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
+    text: '#FFF0F6',
+    background: '#21131A',
     tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
+    icon: '#C4A7B5',
+    tabIconDefault: '#C4A7B5',
     tabIconSelected: tintColorDark,
   },
 };

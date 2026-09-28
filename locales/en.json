@@ -1,4 +1,15 @@
 {
+  "transactionSteps": {
+    "progress": "Step {{step}} of {{total}}",
+    "review": "Review details",
+    "pin": "Enter PIN to confirm"
+  },
+  "providerActions": {
+    "title": "What would you like to do?",
+    "payment": "Payment",
+    "paymentHint": "Pay bills using your Toppay balance",
+    "mobileOnly": "Send Money supports mobile wallets only"
+  },
   "common": {
     "appName": "Toppay",
     "balance": "Balance",
@@ -51,6 +62,23 @@
     "english": "English",
     "bangla": "বাংলা",
     "switchLanguage": "Switch Language"
+  },
+  "homeDesign": {
+    "showBalance": "Tap for balance",
+    "hideBalance": "Hide balance",
+    "balanceUnavailable": "Balance unavailable",
+    "paymentServices": "Payment services",
+    "paymentHint": "Your favourite ways to add money",
+    "bank": "Bank",
+    "paymentMethods": "Payment methods",
+    "security": "Security",
+    "searchServices": "Search services",
+    "noServices": "No matching services",
+    "showMore": "More services",
+    "showLess": "Show less",
+    "bannerTitle": "Your everyday,\nmade easier",
+    "bannerSubtitle": "Send, recharge and pay with Toppay",
+    "explore": "Explore"
   },
   "home": {
     "welcome": "Welcome to Toppay",
@@ -126,6 +154,12 @@
     }
   },
   "login": {
+    "restoringAccount": "Getting your account ready",
+    "restoreHint": "Please wait. Your saved sign-in will be restored automatically.",
+    "simpleTitle": "Log in / register\nwith your Google account",
+    "simplePinTitle": "Log in to your\nToppay account",
+    "googleAccountLabel": "Google account",
+    "simpleGoogleHint": "Tap Next to choose your Google account. Then enter or create your 4-digit PIN.",
     "googleSubtitle": "Create your wallet once with Google, then use PIN for faster login.",
     "pinSubtitle": "Enter your 4-digit PIN to unlock your wallet.",
     "stepOne": "Step 1 of 2",

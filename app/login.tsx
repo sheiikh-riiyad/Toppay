@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     Animated,
     Easing,
+    Modal,
     Platform,
     Pressable,
     ScrollView,
@@ -18,7 +19,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import AppLogo from '@/components/AppLogo';
-import LanguageToggle from '@/components/LanguageToggle';
 import { palette } from '@/constants/toppay';
 import { useAuth } from '@/contexts/auth';
 
@@ -71,7 +71,7 @@ if (Platform.OS !== 'web') {
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const {
     account,
     connectGoogleAccount,
@@ -90,6 +90,17 @@ export default function LoginScreen() {
   const [confirmPin, setConfirmPin] = useState('');
   const [activeSetupField, setActiveSetupField] = useState<'pin' | 'confirm'>('pin');
   const [error, setError] = useState('');
+  const [isRestoring, setIsRestoring] = useState(true);
+  useEffect(() => {
+    if (!isReady) return;
+    // Give the restored-account transition a brief, visible loading state.
+    const timer = setTimeout(() => setIsRestoring(false), hasAccount ? 650 : 0);
+    return () => clearTimeout(timer);
+  }, [isReady, hasAccount]);
+
+  useEffect(() => {
+    if (isReady && pendingGoogleAccount && !hasAccount) setGoogleConnected(true);
+  }, [isReady, pendingGoogleAccount, hasAccount]);
   const setupPinComplete = pin.length === 4 && confirmPin.length === 4 && pin === confirmPin;
   const setupMismatch = confirmPin.length === 4 && pin !== confirmPin;
   const hasNativeGoogleClientId = Platform.select({
@@ -98,8 +109,9 @@ export default function LoginScreen() {
     default: true,
   });
   const canUseDevelopmentLogin = __DEV__ && isExpoGo && Platform.OS !== 'web';
-  const isLoginBusy = isConnectingGoogle || isCreatingWallet;
-  const loadingMessage = isConnectingGoogle
+  const isCheckingAccount = !isReady || isRestoring;
+  const isLoginBusy = isCheckingAccount || isConnectingGoogle || isCreatingWallet;
+  const loadingMessage = isCheckingAccount ? t('login.restoringAccount') : isConnectingGoogle
     ? t('login.signingIn')
     : hasAccount
       ? t('login.unlocking')
@@ -281,178 +293,131 @@ export default function LoginScreen() {
     setActiveSetupField('pin');
   }
 
-  if (!isReady) {
-    return (
-      <SafeAreaView style={styles.screen} edges={['top']}>
-        <View style={styles.loadingWrap}>
-          <Text style={styles.loadingText}>{t('common.loading')}</Text>
-        </View>
-      </SafeAreaView>
-    );
+  const nextDisabled = isLoginBusy || (hasAccount ? pin.length !== 4 : googleConnected ? !setupPinComplete : false);
+  const nextAction = hasAccount ? handleLogin : googleConnected ? handleSetup : handleGoogleConnect;
+
+  function handleBack() {
+    if (googleConnected && !hasAccount) {
+      setGoogleConnected(false);
+      handleClear();
+    } else if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.push('/support');
+    }
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
+      <View style={styles.topBar}>
+        <Pressable onPress={handleBack} disabled={isLoginBusy} style={styles.backButton}
+          accessibilityRole="button" accessibilityLabel={router.canGoBack() || googleConnected ? t('common.back') : t('common.help')}>
+          <MaterialIcons name={router.canGoBack() || googleConnected ? 'arrow-back' : 'help-outline'} size={26} color={palette.primary} />
+        </Pressable>
+        <Pressable style={styles.languageButton} disabled={isLoginBusy}
+          onPress={() => void i18n.changeLanguage(i18n.language.startsWith('bn') ? 'en' : 'bn')}
+          accessibilityRole="button" accessibilityLabel={t('common.switchLanguage')}>
+          <Text style={styles.languageText}>{i18n.language.startsWith('bn') ? 'English' : t('common.bangla')}</Text>
+        </Pressable>
+      </View>
+
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.brandBlock}>
-          <AppLogo size={70} />
-          <Text style={styles.brandName}>Toppay</Text>
-          <Text style={styles.brandMeta}>
-            {hasAccount ? t('login.pinSubtitle') : t('login.googleSubtitle')}
+          <AppLogo size={58} />
+          <Text style={styles.heading}>
+            {hasAccount ? t('login.simplePinTitle') : googleConnected ? t('login.setupPinTitle') : t('login.simpleTitle')}
           </Text>
         </View>
 
-        <LanguageToggle />
-
-        {hasAccount ? (
-          <View style={styles.panel}>
-            <View style={styles.accountRow}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{account?.initials ?? 'TP'}</Text>
-              </View>
-              <View style={styles.accountCopy}>
-                <Text style={styles.accountName}>{account?.name}</Text>
-                <Text style={styles.accountEmail}>{account?.email}</Text>
-              </View>
-              <MaterialIcons name="verified-user" size={20} color={palette.primary} />
-            </View>
-
-            <Text style={styles.panelTitle}>{t('login.enterPin')}</Text>
-            <PinDots value={pin} />
-            {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-            <Keypad onBackspace={handleBackspace} onClear={handleClear} onDigit={handleDigit} />
-
-            <Pressable
-              style={[styles.primaryButton, (pin.length !== 4 || isCreatingWallet) && styles.primaryButtonDisabled]}
-              disabled={pin.length !== 4 || isCreatingWallet}
-              onPress={handleLogin}
-              accessibilityRole="button">
-              <MaterialIcons name="lock-open" size={18} color={palette.surface} />
-              <Text style={styles.primaryButtonText}>
-                {isCreatingWallet ? t('common.loading') : t('login.unlock')}
-              </Text>
-            </Pressable>
-
-            <Pressable
-              style={styles.linkButton}
-              disabled={isLoginBusy}
-              onPress={() => void resetAccount()}
-              accessibilityRole="button">
-              <Text style={styles.linkButtonText}>{t('login.useAnotherAccount')}</Text>
-            </Pressable>
-          </View>
-        ) : (
-          <View style={styles.panel}>
-            <View style={styles.stepBadge}>
-              <Text style={styles.stepBadgeText}>
-                {googleConnected ? t('login.stepTwo') : t('login.stepOne')}
-              </Text>
-            </View>
-
-            {!googleConnected ? (
-              <>
-                <Text style={styles.panelTitle}>{t('login.createTitle')}</Text>
-                <Text style={styles.panelMeta}>{t('login.createMeta')}</Text>
-                <Pressable
-                  style={[styles.googleButton, isConnectingGoogle && styles.googleButtonDisabled]}
-                  disabled={isConnectingGoogle}
-                  onPress={handleGoogleConnect}
-                  accessibilityRole="button">
-                  <View style={styles.googleMark}>
-                    <Text style={styles.googleMarkText}>G</Text>
-                  </View>
-                  <Text style={styles.googleButtonText}>
-                    {isConnectingGoogle ? t('common.loading') : t('login.continueGoogle')}
-                  </Text>
-                </Pressable>
-                {canUseDevelopmentLogin ? (
-                  <Pressable
-                    style={[styles.developmentButton, isLoginBusy && styles.developmentButtonDisabled]}
-                    disabled={isLoginBusy}
-                    onPress={handleDevelopmentLogin}
-                    accessibilityRole="button">
-                    <MaterialIcons name="code" size={18} color={palette.primary} />
-                    <Text style={styles.developmentButtonText}>{t('login.continueDevelopment')}</Text>
-                  </Pressable>
-                ) : null}
-                {error ? <Text style={styles.errorText}>{error}</Text> : null}
-              </>
-            ) : (
-              <>
-                <View style={styles.accountRow}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{pendingGoogleAccount?.initials ?? 'TP'}</Text>
-                  </View>
-                  <View style={styles.accountCopy}>
-                    <Text style={styles.accountName}>{pendingGoogleAccount?.name}</Text>
-                    <Text style={styles.accountEmail}>{pendingGoogleAccount?.email}</Text>
-                  </View>
-                  <MaterialIcons name="check-circle" size={20} color={palette.primary} />
+        <View style={styles.form}>
+          {hasAccount || googleConnected ? (
+            <>
+              <Text style={styles.fieldLabel}>{t('login.googleAccountLabel')}</Text>
+              <View style={styles.accountRow}>
+                <MaterialIcons name="account-circle" size={25} color={palette.primary} />
+                <View style={styles.accountCopy}>
+                  <Text style={styles.accountName}>{(hasAccount ? account : pendingGoogleAccount)?.name}</Text>
+                  <Text style={styles.accountEmail}>{(hasAccount ? account : pendingGoogleAccount)?.email}</Text>
                 </View>
-
-                <Text style={styles.panelTitle}>{t('login.setupPinTitle')}</Text>
-                <Text style={styles.panelMeta}>{t('login.setupPinMeta')}</Text>
-
-                <Pressable
-                  style={[styles.pinInputPanel, activeSetupField === 'pin' && styles.pinInputPanelActive]}
-                  onPress={() => setActiveSetupField('pin')}
-                  accessibilityRole="button">
-                  <Text style={styles.pinInputLabel}>{t('login.newPin')}</Text>
-                  <PinDots value={pin} compact />
+              </View>
+              {hasAccount ? (
+                <>
+                  <Text style={styles.fieldLabel}>{t('login.enterPin')}</Text>
+                  <PinDots value={pin} />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.helperText}>{t('login.setupPinMeta')}</Text>
+                  <Pressable style={[styles.pinInputPanel, activeSetupField === 'pin' && styles.pinInputPanelActive]}
+                    onPress={() => setActiveSetupField('pin')} disabled={isLoginBusy} accessibilityRole="button"
+                    accessibilityLabel={t('login.newPin')}>
+                    <Text style={styles.fieldLabel}>{t('login.newPin')}</Text>
+                    <PinDots value={pin} compact />
+                  </Pressable>
+                  <Pressable style={[styles.pinInputPanel, activeSetupField === 'confirm' && styles.pinInputPanelActive]}
+                    onPress={() => setActiveSetupField('confirm')} disabled={isLoginBusy} accessibilityRole="button"
+                    accessibilityLabel={t('login.confirmPin')}>
+                    <Text style={styles.fieldLabel}>{t('login.confirmPin')}</Text>
+                    <PinDots value={confirmPin} compact />
+                  </Pressable>
+                  {setupMismatch ? <Text accessibilityRole="alert" style={styles.errorText}>{t('login.pinMismatch')}</Text> : null}
+                </>
+              )}
+              <Keypad onBackspace={handleBackspace} onClear={handleClear} onDigit={handleDigit} />
+              {hasAccount ? (
+                <Pressable style={styles.textButton} disabled={isLoginBusy}
+                  onPress={() => { handleClear(); setGoogleConnected(false); void resetAccount(); }} accessibilityRole="button">
+                  <Text style={styles.linkText}>{t('login.useAnotherAccount')}</Text>
                 </Pressable>
-
-                <Pressable
-                  style={[styles.pinInputPanel, activeSetupField === 'confirm' && styles.pinInputPanelActive]}
-                  onPress={() => setActiveSetupField('confirm')}
-                  accessibilityRole="button">
-                  <Text style={styles.pinInputLabel}>{t('login.confirmPin')}</Text>
-                  <PinDots value={confirmPin} compact />
+              ) : null}
+            </>
+          ) : (
+            <>
+              <Text style={styles.fieldLabel}>{t('login.googleAccountLabel')}</Text>
+              <Pressable
+                style={({ pressed }) => [styles.signInRow, pressed && styles.signInRowPressed]}
+                onPress={handleGoogleConnect}
+                disabled={isLoginBusy}
+                accessibilityRole="button"
+                accessibilityLabel={t('login.continueGoogle')}
+                accessibilityState={{ disabled: isLoginBusy, busy: isConnectingGoogle }}>
+                <MaterialIcons name="account-circle" size={26} color={palette.primary} />
+                <Text style={styles.signInText}>{t('login.continueGoogle')}</Text>
+              </Pressable>
+              <Text style={styles.helperText}>{t('login.simpleGoogleHint')}</Text>
+              {canUseDevelopmentLogin ? (
+                <Pressable style={styles.textButton} disabled={isLoginBusy} onPress={handleDevelopmentLogin} accessibilityRole="button">
+                  <Text style={styles.linkText}>{t('login.continueDevelopment')}</Text>
                 </Pressable>
-
-                {setupMismatch ? <Text style={styles.errorText}>{t('login.pinMismatch')}</Text> : null}
-                {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-                <Keypad onBackspace={handleBackspace} onClear={handleClear} onDigit={handleDigit} />
-
-                <Pressable
-                  style={[styles.primaryButton, (!setupPinComplete || isCreatingWallet) && styles.primaryButtonDisabled]}
-                  disabled={!setupPinComplete || isCreatingWallet}
-                  onPress={handleSetup}
-                  accessibilityRole="button">
-                  <MaterialIcons name="account-circle" size={18} color={palette.surface} />
-                  <Text style={styles.primaryButtonText}>
-                    {isCreatingWallet ? t('common.loading') : t('login.createWallet')}
-                  </Text>
-                </Pressable>
-              </>
-            )}
-          </View>
-        )}
-
-        <View style={styles.securityNote}>
-          <MaterialIcons name="security" size={19} color={palette.primary} />
-          <Text style={styles.securityText}>{t('login.securityNote')}</Text>
+              ) : null}
+            </>
+          )}
+          {error ? <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text> : null}
+          {!hasAccount ? <Pressable style={styles.textButton} disabled={isLoginBusy} onPress={() => router.push('/support')} accessibilityRole="button">
+            <Text style={styles.supportText}>{t('login.needSupport')}</Text>
+          </Pressable> : null}
         </View>
-
-        <Pressable
-          style={({ pressed }) => [
-            styles.supportButton,
-            pressed && styles.supportButtonPressed,
-            isLoginBusy && styles.supportButtonDisabled,
-          ]}
-          disabled={isLoginBusy}
-          onPress={() => router.push('/support')}
-          accessibilityRole="button">
-          <MaterialIcons name="support-agent" size={20} color={palette.primary} />
-          <Text style={styles.supportButtonText}>{t('login.needSupport')}</Text>
-          <MaterialIcons name="chevron-right" size={20} color={palette.primary} />
-        </Pressable>
       </ScrollView>
 
-      {isLoginBusy ? (
-        <LoginProgressOverlay message={loadingMessage} detail={t('login.pleaseWait')} />
-      ) : null}
+      <View style={styles.footer}>
+        {hasAccount ? (
+          <Pressable style={styles.pinSupportButton} disabled={isLoginBusy} onPress={() => router.push('/support')} accessibilityRole="button">
+            <MaterialIcons name="support-agent" size={21} color={palette.primary} />
+            <Text style={styles.languageText}>{t('login.needSupport')}</Text>
+          </Pressable>
+        ) : null}
+        <View style={styles.stepTrack}>
+          <View style={[styles.stepFill, { width: hasAccount || googleConnected ? '66%' : '20%' }]}>
+            <View style={styles.stepDot} />
+          </View>
+        </View>
+        <Pressable style={({ pressed }) => [styles.nextButton, nextDisabled && styles.nextButtonDisabled, pressed && !nextDisabled && styles.nextButtonPressed]}
+          disabled={nextDisabled} onPress={nextAction} accessibilityRole="button" accessibilityState={{ disabled: nextDisabled, busy: isLoginBusy }}>
+          <Text style={styles.nextText}>{isLoginBusy ? t('common.loading') : t('common.next')}</Text>
+          <MaterialIcons name="arrow-forward" size={27} color="#FFFFFF" />
+        </Pressable>
+      </View>
+      {isLoginBusy ? <LoginProgressOverlay message={loadingMessage} detail={t(isCheckingAccount ? 'login.restoreHint' : 'login.pleaseWait')} /> : null}
     </SafeAreaView>
   );
 }
@@ -483,8 +448,9 @@ function LoginProgressOverlay({ detail, message }: { detail: string; message: st
   });
 
   return (
-    <View style={styles.progressOverlay} pointerEvents="auto">
-      <View style={styles.progressPanel}>
+    <Modal transparent visible animationType="fade" statusBarTranslucent onRequestClose={() => {}}>
+    <View style={styles.progressOverlay}>
+      <View style={styles.progressPanel} accessibilityViewIsModal accessibilityRole="progressbar" accessibilityLabel={message}>
         <ActivityIndicator size="large" color={palette.primary} />
         <Text style={styles.progressTitle}>{message}</Text>
         <Text style={styles.progressMeta}>{detail}</Text>
@@ -493,6 +459,7 @@ function LoginProgressOverlay({ detail, message }: { detail: string; message: st
         </View>
       </View>
     </View>
+    </Modal>
   );
 }
 
@@ -553,347 +520,56 @@ function Keypad({
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: palette.background,
-  },
-  content: {
-    padding: 18,
-    paddingBottom: 32,
-    gap: 16,
-  },
-  loadingWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loadingText: {
-    color: palette.muted,
-    fontSize: 15,
-    fontWeight: '800',
-  },
-  brandBlock: {
-    alignItems: 'center',
-    paddingTop: 18,
-    paddingBottom: 4,
-  },
-  brandName: {
-    color: palette.ink,
-    fontSize: 30,
-    fontWeight: '900',
-    marginTop: 12,
-  },
-  brandMeta: {
-    color: palette.muted,
-    fontSize: 13,
-    fontWeight: '700',
-    marginTop: 6,
-    textAlign: 'center',
-  },
-  panel: {
-    backgroundColor: palette.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 16,
-    gap: 16,
-  },
-  stepBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: 8,
-    backgroundColor: palette.softGreen,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  stepBadgeText: {
-    color: palette.primary,
-    fontSize: 12,
-    fontWeight: '900',
-  },
-  panelTitle: {
-    color: palette.ink,
-    fontSize: 20,
-    fontWeight: '900',
-  },
-  panelMeta: {
-    color: palette.muted,
-    fontSize: 13,
-    fontWeight: '700',
-    lineHeight: 19,
-  },
-  googleButton: {
-    minHeight: 56,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    backgroundColor: palette.surface,
-  },
-  googleButtonDisabled: {
-    opacity: 0.65,
-  },
-  googleMark: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#F3F5F2',
-  },
-  googleMarkText: {
-    color: palette.coral,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  googleButtonText: {
-    color: palette.ink,
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  developmentButton: {
-    minHeight: 48,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.primary,
-    backgroundColor: palette.softGreen,
-  },
-  developmentButtonText: {
-    color: palette.primary,
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  developmentButtonDisabled: {
-    opacity: 0.55,
-  },
-  accountRow: {
-    minHeight: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    borderRadius: 8,
-    backgroundColor: palette.surfaceAlt,
-    padding: 12,
-  },
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.primary,
-  },
-  avatarText: {
-    color: palette.surface,
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  accountCopy: {
-    flex: 1,
-  },
-  accountName: {
-    color: palette.ink,
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  accountEmail: {
-    color: palette.muted,
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 3,
-  },
-  pinDots: {
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 14,
-  },
-  pinDotsCompact: {
-    height: 26,
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  pinDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: palette.primary,
-  },
-  pinDotCompact: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-  },
-  pinDotFilled: {
-    backgroundColor: palette.primary,
-  },
-  pinInputPanel: {
-    minHeight: 58,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    paddingHorizontal: 12,
-  },
-  pinInputPanelActive: {
-    borderColor: palette.primary,
-    backgroundColor: palette.softGreen,
-  },
-  pinInputLabel: {
-    color: palette.ink,
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  keypad: {
-    gap: 10,
-  },
-  keypadRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  keyButton: {
-    flex: 1,
-    height: 52,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 8,
-    backgroundColor: '#F7F9F6',
-    borderWidth: 1,
-    borderColor: palette.border,
-  },
-  keyButtonPressed: {
-    backgroundColor: palette.softGreen,
-  },
-  keyText: {
-    color: palette.ink,
-    fontSize: 22,
-    fontWeight: '900',
-  },
-  clearText: {
-    color: palette.danger,
-    fontSize: 15,
-  },
-  primaryButton: {
-    height: 54,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderRadius: 8,
-    backgroundColor: palette.primary,
-  },
-  primaryButtonDisabled: {
-    backgroundColor: '#A8B7B0',
-  },
-  primaryButtonText: {
-    color: palette.surface,
-    fontSize: 15,
-    fontWeight: '900',
-  },
-  linkButton: {
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  linkButtonText: {
-    color: palette.primary,
-    fontSize: 13,
-    fontWeight: '900',
-  },
-  errorText: {
-    color: palette.danger,
-    fontSize: 12,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  securityNote: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 10,
-    borderRadius: 8,
-    backgroundColor: palette.softGreen,
-    padding: 14,
-  },
-  securityText: {
-    flex: 1,
-    color: palette.ink,
-    fontSize: 12,
-    fontWeight: '700',
-    lineHeight: 17,
-  },
-  supportButton: {
-    minHeight: 52,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.primary,
-    backgroundColor: palette.surface,
-  },
-  supportButtonPressed: {
-    backgroundColor: palette.softGreen,
-  },
-  supportButtonDisabled: {
-    opacity: 0.55,
-  },
-  supportButtonText: {
-    color: palette.primary,
-    fontSize: 14,
-    fontWeight: '900',
-  },
-  progressOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(246, 249, 246, 0.82)',
-    padding: 24,
-  },
-  progressPanel: {
-    width: '100%',
-    maxWidth: 320,
-    alignItems: 'center',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    backgroundColor: palette.surface,
-    padding: 22,
-    gap: 10,
-  },
-  progressTitle: {
-    color: palette.ink,
-    fontSize: 16,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  progressMeta: {
-    color: palette.muted,
-    fontSize: 12,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  progressTrack: {
-    width: '100%',
-    height: 6,
-    overflow: 'hidden',
-    borderRadius: 3,
-    backgroundColor: '#E5ECE7',
-    marginTop: 4,
-  },
-  progressFill: {
-    width: '62%',
-    height: '100%',
-    borderRadius: 3,
-    backgroundColor: palette.primary,
-  },
+  pinSupportButton: { minHeight: 46, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 },
+  screen: { flex: 1, backgroundColor: '#FAFAFA' },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, minHeight: 48 },
+  backButton: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
+  languageButton: { borderWidth: 1, borderColor: palette.primary, borderRadius: 24, paddingHorizontal: 16, minHeight: 36, justifyContent: 'center' },
+  languageText: { color: palette.primary, fontSize: 15 },
+  content: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 40, paddingBottom: 28 },
+  brandBlock: { alignItems: 'flex-start', marginBottom: 26, gap: 22 },
+  heading: { color: '#505050', fontSize: 27, lineHeight: 37, fontWeight: '500' },
+  form: { gap: 16 },
+  fieldLabel: { color: '#666666', fontSize: 15 },
+  signInRow: { flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 58, backgroundColor: '#F3F3F3', paddingHorizontal: 14 },
+  signInRowPressed: { backgroundColor: palette.softPrimary },
+  signInText: { color: '#555555', fontSize: 17, flexShrink: 1 },
+  helperText: { color: '#777777', fontSize: 14, lineHeight: 22 },
+  accountRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#E5E5E5' },
+  accountCopy: { flex: 1 },
+  accountName: { color: '#555555', fontSize: 16 },
+  accountEmail: { color: '#777777', fontSize: 13, marginTop: 4 },
+  textButton: { alignSelf: 'flex-start', minHeight: 44, justifyContent: 'center' },
+  linkText: { color: palette.primary, fontSize: 14 },
+  supportText: { color: palette.primary, fontSize: 13, textDecorationLine: 'underline' },
+  footer: { paddingTop: 6 },
+  stepTrack: { height: 3, backgroundColor: '#D8D8D8', marginBottom: 8 },
+  stepFill: { height: 3, backgroundColor: '#F65B99', justifyContent: 'center', alignItems: 'flex-end' },
+  stepDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: '#F65B99' },
+  nextButton: { minHeight: 54, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 12, backgroundColor: palette.primary },
+  nextButtonDisabled: { backgroundColor: '#A5A5A5' },
+  nextButtonPressed: { backgroundColor: palette.primaryDark },
+  nextText: { color: '#FFFFFF', fontSize: 19, fontWeight: '500' },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  loadingText: { color: palette.muted, fontSize: 15 },
+  pinDots: { height: 44, flexDirection: 'row', alignItems: 'center', gap: 18 },
+  pinDotsCompact: { height: 26, gap: 12 },
+  pinDot: { width: 14, height: 14, borderRadius: 7, borderWidth: 1, borderColor: '#AAAAAA' },
+  pinDotCompact: { width: 10, height: 10, borderRadius: 5 },
+  pinDotFilled: { backgroundColor: palette.primary, borderColor: palette.primary },
+  pinInputPanel: { minHeight: 54, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: '#DDDDDD', gap: 12 },
+  pinInputPanelActive: { borderBottomColor: palette.primary },
+  keypad: { gap: 4 },
+  keypadRow: { flexDirection: 'row', gap: 8 },
+  keyButton: { flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 4 },
+  keyButtonPressed: { backgroundColor: palette.softPrimary },
+  keyText: { color: '#555555', fontSize: 24, fontWeight: '400' },
+  clearText: { color: palette.primary, fontSize: 16 },
+  errorText: { color: palette.danger, fontSize: 13, lineHeight: 20 },
+  progressOverlay: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(48,28,38,0.35)', padding: 24 },
+  progressPanel: { width: '100%', maxWidth: 320, alignItems: 'center', padding: 26, gap: 16, borderRadius: 20, backgroundColor: '#FFFFFF' },
+  progressTitle: { color: '#555555', fontSize: 17, textAlign: 'center' },
+  progressMeta: { color: '#777777', fontSize: 13, textAlign: 'center' },
+  progressTrack: { width: '100%', height: 3, overflow: 'hidden', backgroundColor: '#E5E5E5', marginTop: 8 },
+  progressFill: { width: '62%', height: '100%', backgroundColor: palette.primary },
 });

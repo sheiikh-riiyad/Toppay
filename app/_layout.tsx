@@ -1,7 +1,7 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, useRouter, useSegments } from 'expo-router';
+import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import 'react-native-reanimated';
 
@@ -12,19 +12,32 @@ import { AuthProvider, useAuth } from '@/contexts/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
-  anchor: '(tabs)',
+  initialRouteName: 'login',
 };
 
 export default React.memo(function RootLayout() {
   const colorScheme = useColorScheme();
+  const baseTheme = colorScheme === 'dark' ? DarkTheme : DefaultTheme;
+  const navigationTheme = {
+    ...baseTheme,
+    colors: {
+      ...baseTheme.colors,
+      primary: palette.primary,
+      background: palette.background,
+      card: palette.surface,
+      text: palette.ink,
+      border: palette.border,
+      notification: palette.primary,
+    },
+  };
 
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+      <ThemeProvider value={navigationTheme}>
         <View style={styles.webCanvas}>
           <View style={styles.appShell}>
             <RootNavigator />
-            <AppUpdatePrompt />
+            <AuthenticatedUpdatePrompt />
           </View>
         </View>
         <StatusBar style="auto" />
@@ -34,31 +47,15 @@ export default React.memo(function RootLayout() {
 });
 
 function RootNavigator() {
-  const router = useRouter();
-  const segments = useSegments();
   const { isAuthenticated, isReady } = useAuth();
-
-  useEffect(() => {
-    if (!isReady) {
-      return;
-    }
-
-    const isPublicRoute = segments[0] === 'login' || segments[0] === 'support';
-
-    if (!isAuthenticated && !isPublicRoute) {
-      router.replace('/login');
-      return;
-    }
-
-    if (isAuthenticated && segments[0] === 'login') {
-      router.replace('/(tabs)');
-    }
-  }, [isAuthenticated, isReady, router, segments]);
+  const unlocked = isReady && isAuthenticated;
 
   return (
     <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="login" />
-      <Stack.Screen name="support" />
+      <Stack.Protected guard={!unlocked}>
+        <Stack.Screen name="login" />
+      </Stack.Protected>
+      <Stack.Protected guard={unlocked}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="send-money" />
       <Stack.Screen name="cash-out" />
@@ -81,8 +78,16 @@ function RootNavigator() {
       <Stack.Screen name="device-management" />
       <Stack.Screen name="personal-information" />
       <Stack.Screen name="payment-methods" />
+      <Stack.Screen name="provider-actions" />
+      </Stack.Protected>
+      <Stack.Screen name="support" />
     </Stack>
   );
+}
+
+function AuthenticatedUpdatePrompt() {
+  const { isReady, isAuthenticated } = useAuth();
+  return isReady && isAuthenticated ? <AppUpdatePrompt /> : null;
 }
 
 const styles = StyleSheet.create({
@@ -102,7 +107,7 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web' ? {
       maxWidth: 720,
       overflow: 'hidden',
-      shadowColor: '#0E1B16',
+      shadowColor: '#3B1527',
       shadowOffset: { width: 0, height: 18 },
       shadowOpacity: 0.12,
       shadowRadius: 38,

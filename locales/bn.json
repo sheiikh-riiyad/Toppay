@@ -1,4 +1,15 @@
 {
+  "transactionSteps": {
+    "progress": "ধাপ {{step}} / {{total}}",
+    "review": "তথ্য যাচাই করুন",
+    "pin": "নিশ্চিত করতে পিন দিন"
+  },
+  "providerActions": {
+    "title": "আপনি কী করতে চান?",
+    "payment": "পেমেন্ট",
+    "paymentHint": "টপপে ব্যালেন্স দিয়ে বিল পরিশোধ করুন",
+    "mobileOnly": "সেন্ড মানি শুধু মোবাইল ওয়ালেটে করা যায়"
+  },
   "common": {
     "appName": "টপপে",
     "balance": "ব্যালেন্স",
@@ -51,6 +62,23 @@
     "english": "English",
     "bangla": "বাংলা",
     "switchLanguage": "ভাষা পরিবর্তন"
+  },
+  "homeDesign": {
+    "showBalance": "ব্যালেন্স দেখুন",
+    "hideBalance": "ব্যালেন্স লুকান",
+    "balanceUnavailable": "ব্যালেন্স পাওয়া যাচ্ছে না",
+    "paymentServices": "পেমেন্ট সেবা",
+    "paymentHint": "আপনার পছন্দের মাধ্যমে টাকা যোগ করুন",
+    "bank": "ব্যাংক",
+    "paymentMethods": "পেমেন্ট মাধ্যম",
+    "security": "নিরাপত্তা",
+    "searchServices": "সেবা খুঁজুন",
+    "noServices": "কোনো সেবা পাওয়া যায়নি",
+    "showMore": "আরো দেখুন",
+    "showLess": "বন্ধ করুন",
+    "bannerTitle": "আপনার\nপ্রতিদিন",
+    "bannerSubtitle": "টাকা পাঠান, রিচার্জ ও বিল দিন সহজেই",
+    "explore": "দেখে নিন"
   },
   "home": {
     "welcome": "টপপেতে স্বাগতম",
@@ -126,6 +154,12 @@
     }
   },
   "login": {
+    "restoringAccount": "আপনার অ্যাকাউন্ট প্রস্তুত হচ্ছে",
+    "restoreHint": "একটু অপেক্ষা করুন। আপনার সংরক্ষিত সাইন-ইন স্বয়ংক্রিয়ভাবে চালু হবে।",
+    "simpleTitle": "গুগল অ্যাকাউন্ট দিয়ে\nলগ ইন / রেজিস্ট্রেশন করুন",
+    "simplePinTitle": "আপনার টপপে অ্যাকাউন্টে\nলগ ইন করুন",
+    "googleAccountLabel": "গুগল অ্যাকাউন্ট",
+    "simpleGoogleHint": "গুগল অ্যাকাউন্ট বেছে নিতে পরবর্তী চাপুন। তারপর আপনার ৪ সংখ্যার পিন দিন বা তৈরি করুন।",
     "googleSubtitle": "একবার Google দিয়ে ওয়ালেট তৈরি করুন, এরপর দ্রুত লগইনের জন্য পিন ব্যবহার করুন।",
     "pinSubtitle": "ওয়ালেট আনলক করতে আপনার ৪ ডিজিট পিন লিখুন।",
     "stepOne": "ধাপ ১ / ২",

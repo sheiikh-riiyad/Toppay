@@ -338,27 +338,63 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const cachedAccount = readAccount();
-
-    setAccount(cachedAccount);
+    let disposed = false;
+    let restored = false;
     setIsAuthenticated(false);
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user && !cachedAccount) {
-        setPendingGoogleAccount((currentAccount) => currentAccount ?? {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // Interactive sign-in is handled by connectGoogleAccount. Restore only
+      // the initial persisted Firebase session here.
+      if (restored) return;
+      restored = true;
+      if (!user) {
+        if (!disposed) {
+          writeAccount(null);
+          setAccount(null);
+          setIsReady(true);
+        }
+        return;
+      }
+
+      const profile: GoogleAccount = {
           uid: user.uid,
           name: user.displayName || user.email || 'Toppay User',
           email: user.email || '',
           initials: getInitials(user.displayName, user.email),
-        });
+      };
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      try {
+        const savedProfile = await Promise.race([
+          getDoc(doc(db, 'users', user.uid)),
+          new Promise<never>((_, reject) => {
+            timeout = setTimeout(() => reject(new Error('Account restore timed out')), 8000);
+          }),
+        ]);
+        if (disposed || auth.currentUser?.uid !== user.uid) return;
+        const data = savedProfile.data();
+        if (data?.hasPin || data?.pin) {
+          // PIN verification still reads Firebase when the user unlocks.
+          const nextAccount = { ...profile, pin: '' };
+          writeAccount(nextAccount);
+          setAccount(nextAccount);
+          setPendingGoogleAccount(null);
+        } else {
+          setPendingGoogleAccount(profile);
+        }
+      } catch {
+        if (disposed || auth.currentUser?.uid !== user.uid) return;
+        // A network failure must not send a returning user into PIN setup.
+        setAccount({ ...profile, pin: cachedAccount?.uid === user.uid ? cachedAccount.pin : '' });
+      } finally {
+        if (timeout) clearTimeout(timeout);
+        if (!disposed) setIsReady(true);
       }
-
-      setIsReady(true);
     }, (error) => {
       console.warn('Firebase auth state listener failed:', error);
-      setIsReady(true);
+      if (!disposed) setIsReady(true);
     });
 
-    return unsubscribe;
+    return () => { disposed = true; unsubscribe(); };
   }, []);
 
   const connectGoogleAccount = useCallback(async (idToken?: string) => {

@@ -281,7 +281,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   cardMeta: {
-    color: '#DDF4EC',
+    color: '#FDE7F0',
     fontSize: 13,
     fontWeight: '800',
     marginTop: 4,
@@ -296,7 +296,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.surface,
   },
   whatsappButtonPressed: {
-    backgroundColor: '#DDF4EC',
+    backgroundColor: '#FDE7F0',
   },
   whatsappButtonText: {
     color: palette.primary,

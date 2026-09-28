@@ -1,16 +1,15 @@
+import TransactionStep from '@/components/TransactionStep';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Pressable,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import WalletMiniLogo from '@/components/WalletMiniLogo';
 import { useAuth } from '@/contexts/auth';
@@ -27,13 +26,14 @@ function makeLocalRequestId(prefix: string) {
 
 export default function SendMoneyConfirmationScreen() {
   const router = useRouter();
+  const [reviewed, setReviewed] = useState(false);
   const { t } = useTranslation();
   const { account } = useAuth();
   const { bonusRate } = useBonusRate('sendmoney');
   const verifySecureActionPin = useSecureActionPin();
   const { summary } = useWalletData(account?.uid);
   const params = useLocalSearchParams();
-  
+
   const receiverName = params.receiverName as string;
   const receiverPhone = params.receiverPhone as string;
   const methodName = params.method as string;
@@ -67,15 +67,15 @@ export default function SendMoneyConfirmationScreen() {
 
   function handlePressIn() {
     if (!canConfirm || pressActiveRef.current || submitLockRef.current) return;
-    
+
     pressActiveRef.current = true;
     setIsConfirming(true);
     let progress = 0;
-    
+
     pressTimerRef.current = setInterval(() => {
       progress += 2;
       setPressProgress(progress);
-      
+
       if (progress >= 100) {
         clearInterval(pressTimerRef.current!);
         pressTimerRef.current = null;
@@ -164,32 +164,47 @@ export default function SendMoneyConfirmationScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()} accessibilityRole="button">
-            <MaterialIcons name="arrow-back" size={22} color={palette.ink} />
+    <TransactionStep title={t(reviewed ? 'transactionSteps.pin' : 'transactionSteps.review')} step={reviewed ? 5 : 4} total={5}
+      busy={isSubmitting} onBack={() => { handlePressOut(); if (reviewed) { setReviewed(false); setPin(''); } else { router.back(); } }}
+      onNext={() => setReviewed(true)}
+      footer={reviewed ? (<>        <View style={styles.confirmPanel}>
+          <Text style={styles.confirmPanelTitle}>{t('generic.pressHoldConfirm')}</Text>
+          <Pressable
+            style={[
+              styles.confirmButton,
+              !canConfirm && styles.confirmButtonDisabled,
+              isConfirming && styles.confirmButtonActive,
+            ]}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            disabled={!canConfirm}
+            accessibilityRole="button">
+            <View
+              style={[
+                styles.confirmProgressBar,
+                {
+                  width: `${pressProgress}%`,
+                },
+              ]}
+            />
+            <View style={styles.confirmButtonContent}>
+              <MaterialIcons name="lock" size={20} color={palette.surface} />
+              <Text style={styles.confirmButtonText}>
+                {isSubmitting
+                  ? t('common.loading')
+                  : pressProgress > 0
+                    ? `${Math.round(pressProgress)}%`
+                    : t('generic.holdToConfirm')}
+              </Text>
+            </View>
           </Pressable>
-          <View style={styles.headerCopy}>
-            <Text style={styles.kicker}>{t('sendMoneyPage.confirmKicker')}</Text>
-            <Text style={styles.title}>{t('sendMoneyPage.confirmTitle')}</Text>
-          </View>
-          <View style={styles.secureBadge}>
-            <MaterialIcons name="verified-user" size={17} color={palette.primary} />
-          </View>
+          {pin.length !== 4 && (
+            <Text style={styles.pinWarning}>{t('sendMoneyPage.pinWarning')}</Text>
+          )}
+          {submitError ? <Text style={styles.pinWarning}>{submitError}</Text> : null}
         </View>
-
-        <View style={styles.heroCard}>
-          <View style={styles.heroIcon}>
-            <MaterialIcons name="check-circle" size={28} color={palette.surface} />
-          </View>
-          <View style={styles.heroCopy}>
-            <Text style={styles.heroTitle}>{t('sendMoneyPage.reviewConfirm')}</Text>
-            <Text style={styles.heroMeta}>{t('sendMoneyPage.checkDetails')}</Text>
-          </View>
-        </View>
-
-        <View style={styles.detailsCard}>
+</>) : undefined}>
+      {!reviewed ? (<>        <View style={styles.detailsCard}>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>{t('generic.recipient')}</Text>
             <Text style={styles.detailValue}>{receiverName}</Text>
@@ -233,7 +248,9 @@ export default function SendMoneyConfirmationScreen() {
           </View>
         </View>
 
-        <View style={styles.pinPanel}>
+</>) : (<>
+        <Text style={styles.compactAmount}>{formatCurrency(numericAmount)}</Text>
+                <View style={styles.pinPanel}>
           <Text style={styles.pinPanelTitle}>{t('sendMoneyPage.enterPin')}</Text>
           <View style={styles.pinInputContainer}>
             <TextInput
@@ -261,139 +278,19 @@ export default function SendMoneyConfirmationScreen() {
           </View>
         </View>
 
-        <View style={styles.confirmPanel}>
-          <Text style={styles.confirmPanelTitle}>{t('generic.pressHoldConfirm')}</Text>
-          <Pressable
-            style={[
-              styles.confirmButton,
-              !canConfirm && styles.confirmButtonDisabled,
-              isConfirming && styles.confirmButtonActive,
-            ]}
-            onPressIn={handlePressIn}
-            onPressOut={handlePressOut}
-            disabled={!canConfirm}
-            accessibilityRole="button">
-            <View
-              style={[
-                styles.confirmProgressBar,
-                {
-                  width: `${pressProgress}%`,
-                },
-              ]}
-            />
-            <View style={styles.confirmButtonContent}>
-              <MaterialIcons name="lock" size={20} color={palette.surface} />
-              <Text style={styles.confirmButtonText}>
-                {isSubmitting
-                  ? t('common.loading')
-                  : pressProgress > 0
-                    ? `${Math.round(pressProgress)}%`
-                    : t('generic.holdToConfirm')}
-              </Text>
-            </View>
-          </Pressable>
-          {pin.length !== 4 && (
-            <Text style={styles.pinWarning}>{t('sendMoneyPage.pinWarning')}</Text>
-          )}
-          {submitError ? <Text style={styles.pinWarning}>{submitError}</Text> : null}
-        </View>
-      </ScrollView>
-    </SafeAreaView>
+
+      </>)}
+    </TransactionStep>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: palette.background,
-  },
-  content: {
-    padding: 18,
-    paddingBottom: 32,
-    gap: 16,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  backButton: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.surface,
-    borderWidth: 1,
-    borderColor: palette.border,
-  },
-  headerCopy: {
-    flex: 1,
-  },
-  kicker: {
-    color: palette.primary,
-    fontSize: 12,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-  },
-  title: {
-    color: palette.ink,
-    fontSize: 27,
-    fontWeight: '900',
-    marginTop: 2,
-  },
-  secureBadge: {
-    width: 42,
-    height: 42,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.softGreen,
-  },
-  heroCard: {
-    minHeight: 92,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: palette.primary,
-    borderRadius: 8,
-    padding: 15,
-  },
-  heroIcon: {
-    width: 52,
-    height: 52,
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: palette.primaryDark,
-  },
-  heroCopy: {
-    flex: 1,
-  },
-  heroTitle: {
-    color: palette.surface,
-    fontSize: 18,
-    fontWeight: '900',
-  },
-  heroMeta: {
-    color: '#CBECE2',
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 5,
-  },
+  compactAmount: { fontSize: 28, color: palette.primary, fontWeight: "700", textAlign: "center", marginVertical: 12 },
   detailsCard: {
-    backgroundColor: palette.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 14,
-    gap: 0,
+    padding: 8, gap: 8,
   },
   detailRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 12,
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 12, minHeight: 34,
   },
   detailRowDivider: {
     height: 1,
@@ -405,6 +302,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   detailValue: {
+    flexShrink: 1,
     color: palette.ink,
     fontSize: 15,
     fontWeight: '900',
@@ -479,12 +377,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.primary,
   },
   confirmPanel: {
-    backgroundColor: palette.surface,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: palette.border,
-    padding: 14,
-    gap: 12,
+    gap: 8,
   },
   confirmPanelTitle: {
     color: palette.ink,
@@ -501,7 +394,7 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   confirmButtonDisabled: {
-    backgroundColor: '#A8B7B0',
+    backgroundColor: '#B99AA8',
   },
   confirmButtonActive: {
     backgroundColor: palette.primaryDark,

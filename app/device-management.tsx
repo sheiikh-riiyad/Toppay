@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
   },
   heroCard: {
     minHeight: 92,
@@ -235,7 +235,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   heroMeta: {
-    color: '#CBECE2',
+    color: '#FFE0ED',
     fontSize: 12,
     fontWeight: '700',
     marginTop: 5,
@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
   },
   deviceInfo: {
     flex: 1,
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   currentBadge: {
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
     borderRadius: 6,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -366,7 +366,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   securityTipsCard: {
-    backgroundColor: palette.softGreen,
+    backgroundColor: palette.softPrimary,
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(14, 128, 101, 0.2)',

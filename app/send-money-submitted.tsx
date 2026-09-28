@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   amountLabel: {
-    color: '#CBECE2',
+    color: '#FFE0ED',
     fontSize: 13,
     fontWeight: '700',
   },
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
   bonusText: {
-    color: '#DDF5EC',
+    color: '#FDE7F0',
     fontSize: 12,
     fontWeight: '700',
     marginTop: 4,

@@ -30,16 +30,16 @@ export default React.memo(function TabLayout() {
 
   const screenOptions = useMemo(() => ({
     tabBarActiveTintColor: palette.primary,
-    tabBarInactiveTintColor: '#82908A',
+    tabBarInactiveTintColor: '#555555',
     headerShown: false,
     // tabBarButton: HapticTab,
     tabBarLabelStyle: {
       fontSize: 11,
-      fontWeight: 'bold' as const,
+      fontWeight: '500' as const,
     },
     tabBarStyle: {
       backgroundColor: palette.surface,
-      borderTopColor: palette.border,
+      borderTopColor: '#EEEEEE',
       height: 68,
       paddingBottom: 9,
       paddingTop: 8,

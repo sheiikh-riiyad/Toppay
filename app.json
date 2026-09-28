@@ -24,7 +24,7 @@
         "REQUEST_INSTALL_PACKAGES"
       ],
       "adaptiveIcon": {
-        "backgroundColor": "#081111",
+        "backgroundColor": "#E2136E",
         "foregroundImage": "./logo.png"
       },
       "edgeToEdgeEnabled": true,
@@ -42,9 +42,9 @@
           "image": "./first-logo.png",
           "imageWidth": 260,
           "resizeMode": "contain",
-          "backgroundColor": "#081111",
+          "backgroundColor": "#E2136E",
           "dark": {
-            "backgroundColor": "#081111"
+            "backgroundColor": "#E2136E"
           }
         }
       ],
