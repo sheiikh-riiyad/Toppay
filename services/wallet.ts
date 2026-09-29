@@ -306,8 +306,8 @@ export function listenUserTransactions(
 }
 
 export async function createAddBalanceRequest(input: CreateAddBalanceRequestInput) {
-  if (input.paymentSourceType === 'card' && input.paymentSourceId) {
-    await verifySavedCardPaymentPin(input.uid, input.paymentSourceId, input.cardPaymentPin || '');
+  if (input.paymentSourceType === 'card' && input.paymentSourceId && input.cardPaymentPin) {
+    await verifySavedCardPaymentPin(input.uid, input.paymentSourceId, input.cardPaymentPin);
   }
   const { requestId, transactionRef } = getTransactionIdentity(input.uid, 'ADD', input.requestId);
   const transaction: WalletTransaction = {

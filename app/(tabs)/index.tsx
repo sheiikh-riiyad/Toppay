@@ -1,10 +1,10 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
-import { type Href, useRouter } from 'expo-router';
 import { useIsFocused } from '@react-navigation/native';
+import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import WalletMiniLogo from '@/components/WalletMiniLogo';
@@ -14,10 +14,7 @@ import { useWalletData } from '@/hooks/use-wallet-data';
 
 type HomeService = { label: string; icon: WalletIconName; color: string; route: Href };
 const services: HomeService[] = [
-  { label: 'home.sendMoney', icon: 'send', color: '#E54D86', route: '/send-money' },
   { label: 'home.mobileRecharge', icon: 'phone-android', color: '#53977D', route: '/mobile-recharge' },
-  { label: 'home.cashOut', icon: 'payments', color: '#00A4A6', route: '/cash-out' },
-  { label: 'home.payBills', icon: 'shopping-bag', color: '#E88149', route: '/bill-pay' },
   { label: 'home.addBalance', icon: 'add-card', color: '#994AB0', route: '/add-balance' },
   { label: 'home.electricityBill', icon: 'electric-bolt', color: '#527E78', route: '/bill-pay' },
   { label: 'home.internetBill', icon: 'router', color: '#D847A0', route: '/bill-pay' },
@@ -50,8 +47,20 @@ export default function HomeScreen() {
     return (
       <Pressable onPress={() => router.push(service.route)} accessibilityRole="button"
         style={({ pressed }) => [quick ? styles.quickTile : styles.service, pressed && styles.pressed]}>
-        <View style={[styles.serviceIcon, quick && styles.quickIcon]}>
-          <MaterialIcons name={service.icon} size={quick ? 26 : 31} color={service.color} />
+        <View style={[
+          styles.serviceIcon,
+          quick && styles.quickIcon,
+          service.label === 'home.mobileRecharge' && styles.mobileRechargeIcon,
+        ]}>
+          {service.label === 'home.mobileRecharge' ? (
+            <Image
+              source={require('../../assets/mobilerecharge.png')}
+              resizeMode="contain"
+              style={{ width: quick ? 36 : 46, height: quick ? 36 : 46 }}
+            />
+          ) : (
+            <MaterialIcons name={service.icon} size={quick ? 26 : 31} color={service.color} />
+          )}
         </View>
         <Text style={[styles.serviceLabel, quick && styles.quickLabel]}>{t(service.label)}</Text>
       </Pressable>
@@ -186,6 +195,7 @@ const styles = StyleSheet.create({
   serviceGrid: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
   service: { width: '25%', alignItems: 'center', paddingHorizontal: 3, paddingVertical: 8, gap: 10, minHeight: 105 },
   serviceIcon: { width: 54, height: 54, borderRadius: 27, backgroundColor: '#F6F6F6', justifyContent: 'center', alignItems: 'center' },
+  mobileRechargeIcon: { backgroundColor: 'transparent' },
   serviceLabel: { fontSize: 11, color: '#444444', textAlign: 'center', lineHeight: 16 },
   pressed: { opacity: 0.65 },
   previewRow: { flexDirection: 'row', marginTop: 14, opacity: 0.16 },

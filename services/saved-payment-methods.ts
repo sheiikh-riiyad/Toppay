@@ -35,6 +35,7 @@ export type SavedCardPaymentMethod = {
   cardholderName: string;
   expiryMonth: string;
   expiryYear: string;
+  cardNumber?: string;
   zipCode?: string;
   label: string;
   last4: string;
@@ -120,6 +121,7 @@ function mapSavedPaymentMethod(id: string, data: DocumentData): SavedPaymentMeth
       cardholderName: String(data.cardholderName || ''),
       expiryMonth: String(data.expiryMonth || ''),
       expiryYear: String(data.expiryYear || ''),
+      cardNumber: data.cardNumber ? String(data.cardNumber) : undefined,
       zipCode: data.zipCode ? String(data.zipCode) : undefined,
       label: String(data.label || `${data.brand || 'Card'} •••• ${last4}`),
       last4,
@@ -217,6 +219,7 @@ export async function saveCardPaymentMethod(uid: string, input: SaveCardPaymentM
     cardholderName,
     expiryMonth,
     expiryYear,
+    cardNumber,
     zipCode,
     label: `${brand} •••• ${last4}`,
     last4,
