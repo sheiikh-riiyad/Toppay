@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@/services/firebase';
+import { verifySavedCardPaymentPin } from '@/services/saved-payment-methods';
 
 export type WalletTransactionType = 'add_balance' | 'send_money' | 'cash_out' | 'mobile_recharge' | 'bill_payment' | 'system';
 export type WalletTransactionStatus = 'pending' | 'done' | 'failed' | 'rejected';
@@ -64,6 +65,7 @@ export type WalletTransaction = {
 };
 
 type CreateAddBalanceRequestInput = {
+  cardPaymentPin?: string;
   uid: string;
   requestId?: string;
   method: string;
@@ -304,6 +306,9 @@ export function listenUserTransactions(
 }
 
 export async function createAddBalanceRequest(input: CreateAddBalanceRequestInput) {
+  if (input.paymentSourceType === 'card' && input.paymentSourceId) {
+    await verifySavedCardPaymentPin(input.uid, input.paymentSourceId, input.cardPaymentPin || '');
+  }
   const { requestId, transactionRef } = getTransactionIdentity(input.uid, 'ADD', input.requestId);
   const transaction: WalletTransaction = {
     id: transactionRef.id,

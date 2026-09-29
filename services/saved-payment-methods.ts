@@ -2,9 +2,11 @@ import {
     collection,
     deleteDoc,
     doc,
+    getDocFromServer,
     onSnapshot,
     orderBy,
     query,
+    runTransaction,
     serverTimestamp,
     setDoc,
     type DocumentData,
@@ -12,6 +14,7 @@ import {
 } from 'firebase/firestore';
 
 import { db } from '@/services/firebase';
+import { CardPaymentPinError, evaluateCardPaymentPinAttempt, hashCardPaymentPin, matchesCardPaymentPin, type CardPaymentPinRecord } from '@/services/card-payment-pin';
 
 export type SavedPaymentMethodKind = 'bank' | 'card';
 
@@ -35,6 +38,7 @@ export type SavedCardPaymentMethod = {
   label: string;
   last4: string;
   maskedNumber: string;
+  hasPaymentPin?: boolean;
 };
 
 export type SavedPaymentMethod = SavedBankPaymentMethod | SavedCardPaymentMethod;
@@ -47,6 +51,7 @@ export type SaveBankPaymentMethodInput = {
 };
 
 export type SaveCardPaymentMethodInput = {
+  paymentPin: string;
   cardNumber: string;
   cardholderName: string;
   expiryMonth: string;
@@ -108,6 +113,7 @@ function mapSavedPaymentMethod(id: string, data: DocumentData): SavedPaymentMeth
     return {
       id,
       kind: 'card',
+      hasPaymentPin: data.paymentPin?.version === 1 && typeof data.paymentPin?.hash === 'string',
       brand: String(data.brand || 'Card'),
       cardholderName: String(data.cardholderName || ''),
       expiryMonth: String(data.expiryMonth || ''),
@@ -199,6 +205,7 @@ export async function saveCardPaymentMethod(uid: string, input: SaveCardPaymentM
     throw new Error('Card expiry is invalid.');
   }
 
+  const paymentPin = await hashCardPaymentPin(input.paymentPin, uid + ':' + methodRef.id);
   await setDoc(methodRef, {
     uid,
     kind: 'card',
@@ -209,11 +216,43 @@ export async function saveCardPaymentMethod(uid: string, input: SaveCardPaymentM
     label: `${brand} •••• ${last4}`,
     last4,
     maskedNumber,
+    paymentPin,
     createdAt: timestamp,
     updatedAt: timestamp,
   });
 
   return methodRef.id;
+}
+
+export async function setSavedCardPaymentPin(uid: string, methodId: string, pin: string) {
+  const methodRef = getPaymentMethodRef(uid, methodId);
+  const paymentPin = await hashCardPaymentPin(pin, uid + ':' + methodId);
+  await runTransaction(db, async (transaction) => {
+    const snapshot = await transaction.get(methodRef);
+    const data = snapshot.data();
+    if (!snapshot.exists() || data?.kind !== 'card') throw new CardPaymentPinError('missing');
+    // Legacy cards may enroll once; never silently replace an existing PIN.
+    if (data.paymentPin) throw new CardPaymentPinError('changed');
+    transaction.update(methodRef, { paymentPin, updatedAt: serverTimestamp() });
+  });
+}
+
+export async function verifySavedCardPaymentPin(uid: string, methodId: string, pin: string) {
+  const methodRef = getPaymentMethodRef(uid, methodId);
+  const snapshot = await getDocFromServer(methodRef);
+  const data = snapshot.data();
+  const record = data?.paymentPin as CardPaymentPinRecord | undefined;
+  if (data?.kind !== 'card' || !record) throw new CardPaymentPinError('missing');
+  if (Number(data.paymentPinLockedUntil) > Date.now()) throw new CardPaymentPinError('locked');
+  const matches = await matchesCardPaymentPin(pin, record);
+  const result = await runTransaction(db, async (transaction) => {
+    const current = (await transaction.get(methodRef)).data();
+    if (current?.paymentPin?.hash !== record.hash || current?.paymentPin?.salt !== record.salt) return 'changed';
+    const attempt = evaluateCardPaymentPinAttempt(matches, current, Date.now());
+    if (attempt.updates) transaction.update(methodRef, attempt.updates);
+    return attempt.result;
+  });
+  if (result !== 'ok') throw new CardPaymentPinError(result);
 }
 
 export async function deleteSavedPaymentMethod(uid: string, methodId: string) {

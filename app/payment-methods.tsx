@@ -12,9 +12,10 @@ import { palette } from '@/constants/toppay';
 import { useAuth } from '@/contexts/auth';
 import { useSavedPaymentMethods } from '@/hooks/use-saved-payment-methods';
 import {
-  deleteSavedPaymentMethod, saveBankPaymentMethod, saveCardPaymentMethod,
-  type SavedPaymentMethodKind,
+  deleteSavedPaymentMethod, saveBankPaymentMethod, saveCardPaymentMethod, setSavedCardPaymentPin,
+  type SavedPaymentMethodKind, type SavedCardPaymentMethod,
 } from '@/services/saved-payment-methods';
+import { isValidCardPaymentPin } from '@/services/card-payment-pin';
 
 function formatCardNumber(value: string) {
   return value.replace(/\D/g, '').slice(0, 19).replace(/(.{4})/g, '$1 ').trim();
@@ -35,6 +36,9 @@ export default function PaymentMethodsScreen() {
   const [cardNumber, setCardNumber] = useState('');
   const [expiryMonth, setExpiryMonth] = useState('');
   const [expiryYear, setExpiryYear] = useState('');
+  const [paymentPin, setPaymentPin] = useState('');
+  const [confirmPaymentPin, setConfirmPaymentPin] = useState('');
+  const [pinSetupCard, setPinSetupCard] = useState<SavedCardPaymentMethod | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [formError, setFormError] = useState('');
@@ -42,7 +46,7 @@ export default function PaymentMethodsScreen() {
   const saveLock = useRef(false);
   const isCard = activeType === 'card';
   const items = isCard ? cards : bankAccounts;
-  const addLabel = t(isCard ? 'paymentMethods.addCardTitle' : 'paymentMethods.addBankTitle');
+  const addLabel = t(pinSetupCard ? 'paymentMethods.setPaymentPin' : isCard ? 'paymentMethods.addCardTitle' : 'paymentMethods.addBankTitle');
   const saveLabel = t(isCard ? 'paymentMethods.saveCard' : 'paymentMethods.saveBank');
   const canSaveBank = Boolean(bankName.trim() && accountHolderName.trim() && accountNumber.trim());
   const cardDigits = cardNumber.replace(/\D/g, '');
@@ -53,7 +57,8 @@ export default function PaymentMethodsScreen() {
       && expiryMonthNumber >= 1 && expiryMonthNumber <= 12
       && /^\d{2}(\d{2})?$/.test(expiryYear)
   );
-  const canSave = Boolean(account) && (isCard ? canSaveCard : canSaveBank) && !isSaving;
+  const validPaymentPin = isValidCardPaymentPin(paymentPin) && paymentPin === confirmPaymentPin;
+  const canSave = Boolean(account) && (isCard ? (Boolean(pinSetupCard) || canSaveCard) && validPaymentPin : canSaveBank) && !isSaving;
 
   const resetForm = useCallback(() => {
     setBankName('');
@@ -64,6 +69,9 @@ export default function PaymentMethodsScreen() {
     setCardNumber('');
     setExpiryMonth('');
     setExpiryYear('');
+    setPaymentPin('');
+    setConfirmPaymentPin('');
+    setPinSetupCard(null);
     setFormError('');
   }, []);
 
@@ -100,13 +108,17 @@ export default function PaymentMethodsScreen() {
     setFormError('');
     try {
       if (isCard) {
-        await saveCardPaymentMethod(account.uid, { cardNumber, cardholderName, expiryMonth, expiryYear });
+        if (pinSetupCard) {
+          await setSavedCardPaymentPin(account.uid, pinSetupCard.id, paymentPin);
+        } else {
+          await saveCardPaymentMethod(account.uid, { cardNumber, cardholderName, expiryMonth, expiryYear, paymentPin });
+        }
       } else {
         await saveBankPaymentMethod(account.uid, { accountHolderName, accountNumber, bankName, branchName });
       }
       resetForm();
       setShowForm(false);
-      setSuccessMessage(t(isCard ? 'paymentMethods.cardSaved' : 'paymentMethods.bankSaved'));
+      setSuccessMessage(t(pinSetupCard ? 'paymentMethods.paymentPinSaved' : isCard ? 'paymentMethods.cardSaved' : 'paymentMethods.bankSaved'));
     } catch {
       setFormError(t('paymentMethods.saveFailed'));
     } finally {
@@ -180,6 +192,7 @@ export default function PaymentMethodsScreen() {
             <View style={styles.form}>
               {isCard ? (
                 <>
+                  {pinSetupCard ? <Text style={styles.savedTitle}>{pinSetupCard.label}</Text> : <>
                   <Field label={t('paymentMethods.cardholderName')} value={cardholderName} onChangeText={setCardholderName} autoCapitalize="words" editable={!isSaving} />
                   <Field label={t('paymentMethods.cardNumber')} value={cardNumber} onChangeText={(value) => setCardNumber(formatCardNumber(value))} keyboardType="number-pad" maxLength={23} editable={!isSaving} />
                   <Text style={styles.fieldLabel}>{t('paymentMethods.expiryDate')}</Text>
@@ -187,6 +200,10 @@ export default function PaymentMethodsScreen() {
                     <Field compact label={t('paymentMethods.expiryMonth')} value={expiryMonth} onChangeText={(value) => setExpiryMonth(value.replace(/\D/g, '').slice(0, 2))} keyboardType="number-pad" maxLength={2} editable={!isSaving} />
                     <Field compact label={t('paymentMethods.expiryYear')} value={expiryYear} onChangeText={(value) => setExpiryYear(value.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" maxLength={4} editable={!isSaving} />
                   </View>
+                  </>}
+                  <Field label={t('paymentMethods.paymentPin')} value={paymentPin} onChangeText={(value) => setPaymentPin(value.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" maxLength={4} secureTextEntry autoComplete="off" editable={!isSaving} />
+                  <Field label={t('paymentMethods.confirmPaymentPin')} value={confirmPaymentPin} onChangeText={(value) => setConfirmPaymentPin(value.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" maxLength={4} secureTextEntry autoComplete="off" editable={!isSaving} />
+                  {confirmPaymentPin.length >= 3 && paymentPin !== confirmPaymentPin ? <Text style={styles.errorText}>{t('paymentMethods.paymentPinMismatch')}</Text> : null}
                   <View style={styles.securityNote}>
                     <MaterialIcons name="lock-outline" size={18} color={palette.muted} />
                     <Text style={styles.hint}>{t('paymentMethods.cardSecurityNote')}</Text>
@@ -228,6 +245,11 @@ export default function PaymentMethodsScreen() {
                     <Text style={styles.savedTitle}>{item.kind === 'card' ? item.label : item.bankName}</Text>
                     <Text style={styles.savedMeta}>{item.kind === 'card' ? item.cardholderName : item.accountHolderName}</Text>
                     <Text style={styles.savedMeta}>{item.kind === 'card' ? item.expiryMonth + '/' + item.expiryYear : item.accountNumber}</Text>
+                    {item.kind === 'card' && !item.hasPaymentPin ? (
+                      <Pressable style={styles.setPinButton} onPress={() => { openForm(); setPinSetupCard(item); }} accessibilityRole="button">
+                        <Text style={styles.setPinText}>{t('paymentMethods.setPaymentPin')}</Text>
+                      </Pressable>
+                    ) : null}
                   </View>
                   <Pressable style={styles.deleteButton} onPress={() => handleDelete(item.id)} disabled={Boolean(deletingId)} accessibilityRole="button" accessibilityLabel={t('paymentMethods.removeMethod', { name: item.label })}>
                     {deletingId === item.id ? <ActivityIndicator size="small" color={palette.danger} /> : <MaterialIcons name="delete-outline" size={21} color={palette.muted} />}
@@ -293,6 +315,8 @@ const styles = StyleSheet.create({
   savedCopy: { flex: 1 },
   savedTitle: { color: palette.ink, fontSize: 15, fontWeight: '700' },
   savedMeta: { color: palette.muted, fontSize: 12, marginTop: 4 },
+  setPinButton: { minHeight: 44, justifyContent: 'center' },
+  setPinText: { color: palette.primary, fontSize: 13, fontWeight: '700' },
   deleteButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   footer: { padding: 16, borderTopWidth: 1, borderTopColor: palette.border },
   primaryButton: { minHeight: 52, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 8, backgroundColor: palette.primary },

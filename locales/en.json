@@ -591,7 +591,20 @@
     "deleteConfirm": "Remove this saved payment method?",
     "deleteFailed": "Could not remove this payment method.",
     "verificationCode": "Card verification code (CVV)",
-    "cardSecurityNote": "Only masked card details are saved. Enter CVV when making a request.",
+    "cardSecurityNote": "Create your own 3 or 4 digit Toppay PIN for this card. Do not use the CVV printed on your bank card.",
+    "paymentPin": "Card payment PIN (3–4 digits)",
+    "confirmPaymentPin": "Confirm card payment PIN",
+    "paymentPinMismatch": "The PINs do not match.",
+    "setPaymentPin": "Set card payment PIN",
+    "paymentPinSaved": "Card payment PIN saved.",
+    "enterPaymentPin": "Enter the Toppay PIN you created for this saved card.",
+    "setupPinFirst": "Set a PIN in Cards & Banks to use this card",
+    "pinError": {
+      "missing": "This card needs a payment PIN. Set one in Cards & Banks.",
+      "incorrect": "Incorrect card payment PIN. Please try again.",
+      "locked": "Too many incorrect attempts. Try again in 5 minutes.",
+      "changed": "This card has changed or was removed. Please select it again."
+    },
     "card": "Card"
   },
   "sendMoneyPage": {

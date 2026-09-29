@@ -26,6 +26,7 @@ import { usePaymentAccount } from '@/hooks/use-payment-account';
 import { useSavedPaymentMethods } from '@/hooks/use-saved-payment-methods';
 import { detectCardBrand, maskCardNumber, type SavedCardPaymentMethod } from '@/services/saved-payment-methods';
 import { createAddBalanceRequest } from '@/services/wallet';
+import { CardPaymentPinError, isValidCardPaymentPin } from '@/services/card-payment-pin';
 
 const quickAmounts = ['1000', '2500', '5000', '10000'];
 type FundingMode = 'manual' | 'card';
@@ -77,6 +78,7 @@ export default function AddBalanceScreen() {
   const [expiryMonth, setExpiryMonth] = useState('');
   const [expiryYear, setExpiryYear] = useState('');
   const [cardCvv, setCardCvv] = useState('');
+  const [cardPaymentPin, setCardPaymentPin] = useState('');
   const { isLoading: isLoadingPaymentAccount, paymentAccount } = usePaymentAccount(selectedMethod.name);
   const [amount, setAmount] = useState('');
   const [trxId, setTrxId] = useState('');
@@ -122,7 +124,9 @@ export default function AddBalanceScreen() {
     : paymentAccountNumber || t('generic.required');
   const isManualMode = fundingMode === 'manual';
   const hasValidCardCvv = /^\d{3,4}$/.test(cardCvv);
-  const canUseCard = Boolean(cardForRequest) && hasValidCardCvv && (cardInputMode === 'new' || !isLoadingSavedMethods);
+  const canUseCard = Boolean(cardForRequest) && (cardInputMode === 'new'
+    ? hasValidCardCvv
+    : Boolean(selectedCard?.hasPaymentPin) && isValidCardPaymentPin(cardPaymentPin) && !isLoadingSavedMethods);
   // Validation: amount must be > 0 and either TRX ID (6+ chars) OR proof image must be provided
   const canSubmit = numericAmount > 0
     && (isManualMode
@@ -139,6 +143,10 @@ export default function AddBalanceScreen() {
   useEffect(() => {
     if (!isLoadingSavedMethods && savedCards.length === 0) setCardInputMode('new');
   }, [isLoadingSavedMethods, savedCards.length]);
+
+  useEffect(() => {
+    setCardPaymentPin('');
+  }, [selectedCard?.id, cardInputMode, fundingMode]);
 
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -167,7 +175,7 @@ export default function AddBalanceScreen() {
   }
 
   async function handleConfirmSubmission() {
-    if (submitLockRef.current) {
+    if (submitLockRef.current || !canSubmit) {
       return;
     }
 
@@ -194,10 +202,12 @@ export default function AddBalanceScreen() {
         paymentSourceLabel: cardRequest ? cardRequest.label : selectedMethod.name,
         paymentSourceMasked: cardRequest ? cardRequest.maskedNumber : paymentAccountNumber,
         paymentSourceType: cardRequest ? 'card' : 'manual',
+        cardPaymentPin: cardRequest?.id ? cardPaymentPin : undefined,
       });
 
       setShowConfirmationModal(false);
       setCardCvv('');
+      setCardPaymentPin('');
       router.replace({
         pathname: '/add-balance-submitted',
         params: {
@@ -209,11 +219,17 @@ export default function AddBalanceScreen() {
           proofImageUri: cardRequest ? '' : proofImageUri || '',
         },
       });
-    } catch {
+    } catch (error) {
       submitLockRef.current = false;
       setIsSubmitting(false);
       setShowConfirmationModal(false);
-      setSubmissionError(t('addBalance.balanceAddFailed'));
+      if (error instanceof CardPaymentPinError) {
+        setCardPaymentPin('');
+        setStep(0);
+        setSubmissionError(t('paymentMethods.pinError.' + error.reason));
+      } else {
+        setSubmissionError(t('addBalance.balanceAddFailed'));
+      }
     }
   }
 
@@ -367,8 +383,19 @@ export default function AddBalanceScreen() {
                 </View>
               </>
             )}
-            <TextInput style={styles.cardInput} placeholder={t('addBalancePage.cardCvvPlaceholder')} placeholderTextColor={palette.muted} keyboardType="number-pad" secureTextEntry maxLength={4} value={cardCvv} onChangeText={(value) => setCardCvv(value.replace(/\D/g, '').slice(0, 4))} />
-            <Text style={styles.cardCvvNote}>{t('addBalancePage.cardCvvNote')}</Text>
+            {cardInputMode === 'saved' ? <>
+              <TextInput style={styles.cardInput} accessibilityLabel={t('paymentMethods.paymentPin')} placeholder={t('paymentMethods.paymentPin')} placeholderTextColor={palette.muted} keyboardType="number-pad" secureTextEntry autoComplete="off" maxLength={4} value={cardPaymentPin} onChangeText={(value) => setCardPaymentPin(value.replace(/\D/g, '').slice(0, 4))} />
+              <Text style={styles.cardCvvNote}>{t('paymentMethods.enterPaymentPin')}</Text>
+              {selectedCard && !selectedCard.hasPaymentPin ? (
+                <Pressable style={styles.pendingLink} onPress={() => router.push('/payment-methods')} accessibilityRole="button">
+                  <Text style={styles.pendingLinkText}>{t('paymentMethods.setupPinFirst')}</Text>
+                </Pressable>
+              ) : null}
+            </> : <>
+              <TextInput style={styles.cardInput} placeholder={t('addBalancePage.cardCvvPlaceholder')} placeholderTextColor={palette.muted} keyboardType="number-pad" secureTextEntry maxLength={4} value={cardCvv} onChangeText={(value) => setCardCvv(value.replace(/\D/g, '').slice(0, 4))} />
+              <Text style={styles.cardCvvNote}>{t('addBalancePage.cardCvvNote')}</Text>
+            </>}
+            {submissionError ? <Text style={styles.errorText} accessibilityRole="alert">{submissionError}</Text> : null}
             <Text style={styles.accountInstruction}>{t('addBalancePage.cardRequestMeta')}</Text>
           </View>
         )}
