@@ -23,6 +23,7 @@ export default function CashOutConfirmationScreen() {
   const [reviewed, setReviewed] = useState(false);
   const { t } = useTranslation();
   const params = useLocalSearchParams();
+  const providerSelected = params.providerSelected === '1';
   const { account } = useAuth();
   const verifySecureActionPin = useSecureActionPin();
   const [pin, setPin] = useState('');
@@ -222,7 +223,7 @@ export default function CashOutConfirmationScreen() {
   }
 
   return (
-    <TransactionStep title={t(reviewed ? 'transactionSteps.pin' : 'transactionSteps.review')} step={reviewed ? 5 : 4} total={5}
+    <TransactionStep title={t(reviewed ? 'transactionSteps.pin' : 'transactionSteps.review')} step={reviewed ? (providerSelected ? 4 : 5) : (providerSelected ? 3 : 4)} total={providerSelected ? 4 : 5}
       busy={isSubmitting} onBack={() => { handlePressOut(); if (reviewed) { setReviewed(false); setPin(''); } else { router.back(); } }}
       onNext={() => setReviewed(true)}
       footer={reviewed ? (<>        <Animated.View style={{ transform: [{ scale: buttonScaleAnim }] }}>

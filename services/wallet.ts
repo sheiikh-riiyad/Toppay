@@ -59,10 +59,6 @@ export type WalletTransaction = {
   paymentSourceLabel?: string;
   paymentSourceMasked?: string;
   paymentSourceType?: 'manual' | 'card';
-  cardVerificationProvided?: boolean;
-  cardVerificationMode?: 'test' | 'live';
-  cardVerificationCode?: string;
-  cardVerificationLength?: number;
   note?: string;
   createdAtText: string;
 };
@@ -79,10 +75,6 @@ type CreateAddBalanceRequestInput = {
   paymentSourceLabel?: string;
   paymentSourceMasked?: string;
   paymentSourceType?: 'manual' | 'card';
-  cardVerificationProvided?: boolean;
-  cardVerificationMode?: 'test' | 'live';
-  cardVerificationCode?: string;
-  cardVerificationLength?: number;
 };
 
 type CreateCashOutRequestInput = {
@@ -258,10 +250,6 @@ function mapWalletTransaction(id: string, data: DocumentData): WalletTransaction
     paymentSourceLabel: data.paymentSourceLabel,
     paymentSourceMasked: data.paymentSourceMasked,
     paymentSourceType: data.paymentSourceType,
-    cardVerificationProvided: Boolean(data.cardVerificationProvided),
-    cardVerificationMode: data.cardVerificationMode,
-    cardVerificationCode: data.cardVerificationCode,
-    cardVerificationLength: Number(data.cardVerificationLength) || undefined,
     note: data.note,
     createdAtText: timestampToText(data.createdAt),
   };
@@ -340,10 +328,6 @@ export async function createAddBalanceRequest(input: CreateAddBalanceRequestInpu
     paymentSourceLabel: input.paymentSourceLabel,
     paymentSourceMasked: input.paymentSourceMasked,
     paymentSourceType: input.paymentSourceType || 'manual',
-    cardVerificationProvided: input.cardVerificationProvided,
-    cardVerificationMode: input.cardVerificationMode,
-    cardVerificationCode: input.cardVerificationCode,
-    cardVerificationLength: input.cardVerificationLength,
     createdAtText: 'Just now',
   };
 

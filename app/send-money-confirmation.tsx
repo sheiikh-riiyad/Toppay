@@ -33,6 +33,7 @@ export default function SendMoneyConfirmationScreen() {
   const verifySecureActionPin = useSecureActionPin();
   const { summary } = useWalletData(account?.uid);
   const params = useLocalSearchParams();
+  const providerSelected = params.providerSelected === '1';
 
   const receiverName = params.receiverName as string;
   const receiverPhone = params.receiverPhone as string;
@@ -164,7 +165,7 @@ export default function SendMoneyConfirmationScreen() {
   }
 
   return (
-    <TransactionStep title={t(reviewed ? 'transactionSteps.pin' : 'transactionSteps.review')} step={reviewed ? 5 : 4} total={5}
+    <TransactionStep title={t(reviewed ? 'transactionSteps.pin' : 'transactionSteps.review')} step={reviewed ? (providerSelected ? 4 : 5) : (providerSelected ? 3 : 4)} total={providerSelected ? 4 : 5}
       busy={isSubmitting} onBack={() => { handlePressOut(); if (reviewed) { setReviewed(false); setPin(''); } else { router.back(); } }}
       onNext={() => setReviewed(true)}
       footer={reviewed ? (<>        <View style={styles.confirmPanel}>

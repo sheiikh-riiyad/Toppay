@@ -29,11 +29,12 @@ const chargeRate = 0.0185;
 export default function CashOutScreen() {
   const router = useRouter();
   const { provider } = useLocalSearchParams<{ provider?: string }>();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => cashOutMethods.some(method => method.name === provider) ? 1 : 0);
   const { t } = useTranslation();
   const { account } = useAuth();
   const { bonusRate } = useBonusRate('cashout');
   const [selectedMethod, setSelectedMethod] = useState<CashOutMethod>(() => cashOutMethods.find(method => provider === 'Bank' ? method.type === 'Bank account' : method.name === provider) ?? cashOutMethods[0]);
+  const providerLocked = cashOutMethods.some(method => method.name === provider);
   const { summary } = useWalletData(account?.uid);
   const [receiverAccount, setReceiverAccount] = useState('');
   const [amount, setAmount] = useState('');
@@ -60,6 +61,7 @@ export default function CashOutScreen() {
       params: {
         requestId,
         method: selectedMethod.name,
+        providerSelected: providerLocked ? '1' : '0',
         receiverAccount: receiverAccount.trim(),
         amount: numericAmount.toString(),
         charge: charge.toString(),
@@ -73,13 +75,13 @@ export default function CashOutScreen() {
 
   const stepValid = step === 1 ? receiverAccount.trim().length >= 6 : step === 2 ? canSubmit && Number.isFinite(numericAmount) : true;
   return (
-    <TransactionStep title={t('cashOutPage.title')} step={step + 1} total={5}
-      onBack={() => step > 0 ? setStep(step - 1) : router.back()}
+    <TransactionStep title={t('cashOutPage.title')} step={step + 1 - (providerLocked ? 1 : 0)} total={providerLocked ? 4 : 5}
+      onBack={() => step > (providerLocked ? 1 : 0) ? setStep(step - 1) : router.back()}
       onNext={() => step < 2 ? setStep(step + 1) : submitRequest()} disabled={!stepValid}>
       {step === 0 ? (<>        <View style={styles.panel}>
           <Text style={styles.panelTitle}>{t('cashOutPage.method')}</Text>
           <View style={styles.methodGrid}>
-            {cashOutMethods.map((method) => {
+            {cashOutMethods.filter(method => provider !== 'Bank' || method.type === 'Bank account').map((method) => {
               const active = method.name === selectedMethod.name;
 
               return (

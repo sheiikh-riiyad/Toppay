@@ -28,7 +28,7 @@ const sendMoneyMethods = cashOutMethods.filter(m => ['bKash', 'Nagad', 'Rocket']
 export default function SendMoneyScreen() {
   const router = useRouter();
   const { provider } = useLocalSearchParams<{ provider?: string }>();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(() => sendMoneyMethods.some(method => method.name === provider) ? 1 : 0);
   const { t } = useTranslation();
   const { account } = useAuth();
   const { bonusRate } = useBonusRate('sendmoney');
@@ -43,6 +43,7 @@ export default function SendMoneyScreen() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [phone, setPhone] = useState('');
   const [selectedMethod, setSelectedMethod] = useState<CashOutMethod>(() => sendMoneyMethods.find(method => provider === 'Bank' ? method.type === 'Bank account' : method.name === provider) ?? sendMoneyMethods[0]);
+  const providerLocked = sendMoneyMethods.some(method => method.name === provider);
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
 
@@ -75,6 +76,7 @@ export default function SendMoneyScreen() {
         receiverName: selectedContact?.name || phone,
         receiverPhone: phone,
         method: selectedMethod.name,
+        providerSelected: providerLocked ? '1' : '0',
         amount,
         bonus: bonusAmount.toString(),
         bonusPercentis: bonusRate.percentis.toString(),
@@ -85,8 +87,8 @@ export default function SendMoneyScreen() {
 
   const stepValid = step === 1 ? phone.trim().length >= 8 : step === 2 ? canContinue && Number.isFinite(numericAmount) : true;
   return (
-    <TransactionStep title={t('sendMoneyPage.title')} step={step + 1} total={5}
-      onBack={() => step > 0 ? setStep(step - 1) : router.back()}
+    <TransactionStep title={t('sendMoneyPage.title')} step={step + 1 - (providerLocked ? 1 : 0)} total={providerLocked ? 4 : 5}
+      onBack={() => step > (providerLocked ? 1 : 0) ? setStep(step - 1) : router.back()}
       onNext={() => step < 2 ? setStep(step + 1) : handleContinue()} disabled={!stepValid}>
       {step === 0 ? (<>        <View style={styles.panel}>
           <Text style={styles.panelTitle}>{t('generic.paymentMethod')}</Text>

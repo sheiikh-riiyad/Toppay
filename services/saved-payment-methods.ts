@@ -35,7 +35,6 @@ export type SavedCardPaymentMethod = {
   label: string;
   last4: string;
   maskedNumber: string;
-  verificationCode: string;
 };
 
 export type SavedPaymentMethod = SavedBankPaymentMethod | SavedCardPaymentMethod;
@@ -52,7 +51,6 @@ export type SaveCardPaymentMethodInput = {
   cardholderName: string;
   expiryMonth: string;
   expiryYear: string;
-  verificationCode: string;
 };
 
 function getPaymentMethodsCollection(uid: string) {
@@ -71,7 +69,7 @@ function cleanText(value: string) {
   return value.trim().replace(/\s+/g, ' ');
 }
 
-function maskCardNumber(cardNumber: string) {
+export function maskCardNumber(cardNumber: string) {
   const digits = cleanDigits(cardNumber);
   const last4 = digits.slice(-4);
 
@@ -81,7 +79,7 @@ function maskCardNumber(cardNumber: string) {
   };
 }
 
-function detectCardBrand(cardNumber: string) {
+export function detectCardBrand(cardNumber: string) {
   const digits = cleanDigits(cardNumber);
 
   if (/^4/.test(digits)) {
@@ -117,7 +115,6 @@ function mapSavedPaymentMethod(id: string, data: DocumentData): SavedPaymentMeth
       label: String(data.label || `${data.brand || 'Card'} •••• ${last4}`),
       last4,
       maskedNumber: String(data.maskedNumber || (last4 ? `•••• •••• •••• ${last4}` : '')),
-      verificationCode: String(data.verificationCode || ''),
     };
   }
 
@@ -195,11 +192,10 @@ export async function saveCardPaymentMethod(uid: string, input: SaveCardPaymentM
   const cardholderName = cleanText(input.cardholderName);
   const expiryMonth = cleanDigits(input.expiryMonth).padStart(2, '0').slice(-2);
   const expiryYear = cleanDigits(input.expiryYear).slice(-4);
-  const verificationCode = cleanDigits(input.verificationCode);
   const monthNumber = Number(expiryMonth);
   const timestamp = serverTimestamp();
 
-  if (monthNumber < 1 || monthNumber > 12 || expiryYear.length < 2 || !/^\d{3,4}$/.test(verificationCode)) {
+  if (monthNumber < 1 || monthNumber > 12 || expiryYear.length < 2) {
     throw new Error('Card expiry is invalid.');
   }
 
@@ -213,7 +209,6 @@ export async function saveCardPaymentMethod(uid: string, input: SaveCardPaymentM
     label: `${brand} •••• ${last4}`,
     last4,
     maskedNumber,
-    verificationCode,
     createdAt: timestamp,
     updatedAt: timestamp,
   });

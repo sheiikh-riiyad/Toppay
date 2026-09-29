@@ -37,7 +37,7 @@ const accountRows: AccountRow[] = [
   },
   {
     titleKey: 'profilePage.cardsBanks',
-    metaKey: 'profilePage.linkedAccounts',
+    metaKey: 'profilePage.savedMethods',
     route: '/payment-methods' as Href,
     icon: 'credit-card' as WalletIconName,
     color: palette.coral,
@@ -57,7 +57,7 @@ export default function ProfileScreen() {
   const router = useRouter();
   const { t } = useTranslation();
   const { account, logout } = useAuth();
-  const { paymentMethods } = useSavedPaymentMethods(account?.uid);
+  const { bankAccounts, cards, isLoading: isLoadingMethods, error: methodsError } = useSavedPaymentMethods(account?.uid);
   const { summary } = useWalletData(account?.uid);
   const profileName = account?.name || t('profilePage.defaultName');
   const profileEmail = account?.email || t('profilePage.noEmail');
@@ -150,7 +150,11 @@ export default function ProfileScreen() {
               <View style={styles.accountCopy}>
                 <Text style={styles.accountTitle}>{t(row.titleKey)}</Text>
                 <Text style={styles.accountMeta}>
-                  {t(row.metaKey, row.titleKey === 'profilePage.cardsBanks' ? { count: paymentMethods.length } : row.metaOptions)}
+                  {row.titleKey === 'profilePage.cardsBanks'
+                    ? isLoadingMethods ? t('common.loading')
+                      : methodsError ? t('profilePage.manageMethods')
+                        : t(row.metaKey, { cards: cards.length, banks: bankAccounts.length })
+                    : t(row.metaKey, row.metaOptions)}
                 </Text>
               </View>
               <MaterialIcons name="chevron-right" size={24} color={palette.muted} />

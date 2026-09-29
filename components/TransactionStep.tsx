@@ -5,9 +5,9 @@ import { BackHandler, Keyboard, KeyboardAvoidingView, Platform, Pressable, Scrol
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { palette } from '@/constants/toppay';
 
-type Props = { title: string; step: number; total: number; onBack: () => void; onNext?: () => void; disabled?: boolean; busy?: boolean; children: ReactNode; footer?: ReactNode };
+type Props = { title: string; step: number; total: number; onBack: () => void; onNext?: () => void; nextLabel?: string; disabled?: boolean; busy?: boolean; children: ReactNode; footer?: ReactNode };
 
-export default function TransactionStep({ title, step, total, onBack, onNext, disabled, busy, children, footer }: Props) {
+export default function TransactionStep({ title, step, total, onBack, onNext, nextLabel, disabled, busy, children, footer }: Props) {
   const { t } = useTranslation();
   useEffect(() => {
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
@@ -31,7 +31,7 @@ export default function TransactionStep({ title, step, total, onBack, onNext, di
         </ScrollView>
         <View style={styles.footer}>
           {footer ?? <Pressable disabled={disabled || busy} onPress={() => { Keyboard.dismiss(); onNext?.(); }} style={[styles.next, (disabled || busy) && styles.disabled]} accessibilityRole="button" accessibilityState={{ disabled: Boolean(disabled || busy), busy: Boolean(busy) }}>
-            <Text style={styles.nextText}>{t('common.next')}</Text><MaterialIcons name="arrow-forward" size={23} color="#FFFFFF" />
+            <Text style={styles.nextText}>{nextLabel ?? t('common.next')}</Text><MaterialIcons name="arrow-forward" size={23} color="#FFFFFF" />
           </Pressable>}
         </View>
       </KeyboardAvoidingView>

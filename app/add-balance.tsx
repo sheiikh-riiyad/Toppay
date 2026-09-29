@@ -1,18 +1,17 @@
+import TransactionStep from '@/components/TransactionStep';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as ImagePicker from 'expo-image-picker';
-import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
     Image,
     Pressable,
-    ScrollView,
     StyleSheet,
     Text,
     TextInput,
     View
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { AddBalanceConfirmationModal } from '@/components/add-balance-confirmation-modal';
 import WalletMiniLogo from '@/components/WalletMiniLogo';
@@ -21,42 +20,18 @@ import {
     formatCurrency,
     palette,
     type AddBalanceMethod,
-    type PendingBalanceRequest,
 } from '@/constants/toppay';
 import { useAuth } from '@/contexts/auth';
 import { usePaymentAccount } from '@/hooks/use-payment-account';
 import { useSavedPaymentMethods } from '@/hooks/use-saved-payment-methods';
-import { useWalletData } from '@/hooks/use-wallet-data';
-import type { SavedCardPaymentMethod } from '@/services/saved-payment-methods';
-import { createAddBalanceRequest, type WalletTransaction } from '@/services/wallet';
+import { detectCardBrand, maskCardNumber, type SavedCardPaymentMethod } from '@/services/saved-payment-methods';
+import { createAddBalanceRequest } from '@/services/wallet';
 
 const quickAmounts = ['1000', '2500', '5000', '10000'];
-const paymentMethodsRoute = '/payment-methods' as Href;
-
 type FundingMode = 'manual' | 'card';
 
 function makeLocalRequestId(prefix: string) {
   return `${prefix}-${Date.now().toString(36).toUpperCase()}${Math.random().toString(36).slice(2, 5).toUpperCase()}`;
-}
-
-function toPendingBalanceRequest(transaction: WalletTransaction): PendingBalanceRequest {
-  const referenceText = transaction.paymentSourceType === 'card'
-    ? `${transaction.paymentSourceLabel || 'Card'} ${transaction.paymentSourceMasked || ''}`.trim()
-    : `TRX ${transaction.trxId || 'N/A'}`;
-
-  return {
-    id: transaction.requestId,
-    method: transaction.method || 'Add balance',
-    amount: transaction.amount,
-    trxId: referenceText,
-    proofName: transaction.proofName || 'Not attached',
-    submittedAt: transaction.createdAtText,
-    eta: 'Waiting for approval',
-    status: 'Pending review',
-    color: palette.amber,
-    tone: palette.softAmber,
-    icon: 'pending-actions',
-  };
 }
 
 function getMethodTypeKey(method: AddBalanceMethod) {
@@ -88,16 +63,23 @@ function makeCardReviewMethod(card?: SavedCardPaymentMethod): AddBalanceMethod {
 export default function AddBalanceScreen() {
   const router = useRouter();
   const { provider } = useLocalSearchParams<{ provider?: string }>();
+  const providerLocked = addBalanceMethods.some(method => method.name === provider);
   const { t } = useTranslation();
   const { account } = useAuth();
-  const { pendingTransactions } = useWalletData(account?.uid);
   const { cards: savedCards, isLoading: isLoadingSavedMethods } = useSavedPaymentMethods(account?.uid);
   const [fundingMode, setFundingMode] = useState<FundingMode>('manual');
+  const [step, setStep] = useState(providerLocked ? 1 : 0);
   const [selectedMethod, setSelectedMethod] = useState<AddBalanceMethod>(() => addBalanceMethods.find(method => provider === 'Bank' ? method.type === 'Bank account' : method.name === provider) ?? addBalanceMethods[0]);
   const [selectedCardId, setSelectedCardId] = useState('');
+  const [cardInputMode, setCardInputMode] = useState<'saved' | 'new'>('saved');
+  const [cardholderName, setCardholderName] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [expiryMonth, setExpiryMonth] = useState('');
+  const [expiryYear, setExpiryYear] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
   const { isLoading: isLoadingPaymentAccount, paymentAccount } = usePaymentAccount(selectedMethod.name);
-  const [amount, setAmount] = useState('5000');
-  const [trxId, setTrxId] = useState('TXN8A91K24');
+  const [amount, setAmount] = useState('');
+  const [trxId, setTrxId] = useState('');
   const [proofImageUri, setProofImageUri] = useState<string | undefined>();
   const [proofImageName, setProofImageName] = useState<string | undefined>();
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
@@ -108,7 +90,25 @@ export default function AddBalanceScreen() {
 
   const numericAmount = Number(amount) || 0;
   const selectedCard = savedCards.find((card) => card.id === selectedCardId) || savedCards[0];
-  const cardReviewMethod = useMemo(() => makeCardReviewMethod(selectedCard), [selectedCard]);
+  const newCardDigits = cardNumber.replace(/\D/g, '');
+  const newCardBrand = detectCardBrand(newCardDigits);
+  const newCardMask = maskCardNumber(newCardDigits);
+  const expiryFullYear = expiryYear.length === 2 ? 2000 + Number(expiryYear) : Number(expiryYear);
+  const expiryDate = new Date(expiryFullYear, Number(expiryMonth), 0);
+  const newCardValid = cardholderName.trim().length > 0
+    && /^\d{12,19}$/.test(newCardDigits)
+    && Number(expiryMonth) >= 1 && Number(expiryMonth) <= 12
+    && /^\d{2}(\d{2})?$/.test(expiryYear)
+    && expiryDate >= new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const cardForRequest: SavedCardPaymentMethod | undefined = cardInputMode === 'saved'
+    ? selectedCard
+    : newCardValid ? {
+      id: '', kind: 'card', brand: newCardBrand, cardholderName: cardholderName.trim(),
+      expiryMonth: expiryMonth.padStart(2, '0'), expiryYear,
+      label: `${newCardBrand} •••• ${newCardMask.last4}`,
+      last4: newCardMask.last4, maskedNumber: newCardMask.maskedNumber,
+    } : undefined;
+  const cardReviewMethod = makeCardReviewMethod(cardForRequest);
   const paymentAccountNumber = paymentAccount.number.trim();
   const selectedMethodWithAccount = useMemo(
     () => ({
@@ -121,22 +121,24 @@ export default function AddBalanceScreen() {
     ? t('common.loading')
     : paymentAccountNumber || t('generic.required');
   const isManualMode = fundingMode === 'manual';
-  const hasValidCardCvv = /^\d{3,4}$/.test(selectedCard?.verificationCode || '');
+  const hasValidCardCvv = /^\d{3,4}$/.test(cardCvv);
+  const canUseCard = Boolean(cardForRequest) && hasValidCardCvv && (cardInputMode === 'new' || !isLoadingSavedMethods);
   // Validation: amount must be > 0 and either TRX ID (6+ chars) OR proof image must be provided
   const canSubmit = numericAmount > 0
     && (isManualMode
       ? paymentAccountNumber.length > 0 && (trxId.trim().length >= 6 || !!proofImageUri) && !isLoadingPaymentAccount
-      : Boolean(selectedCard) && hasValidCardCvv && !isLoadingSavedMethods)
+      : canUseCard)
     && !isSubmitting;
-  const pendingBalanceRequests = pendingTransactions
-    .filter((transaction) => transaction.type === 'add_balance')
-    .map(toPendingBalanceRequest);
 
   useEffect(() => {
     if (!selectedCardId && savedCards.length > 0) {
       setSelectedCardId(savedCards[0].id);
     }
   }, [savedCards, selectedCardId]);
+
+  useEffect(() => {
+    if (!isLoadingSavedMethods && savedCards.length === 0) setCardInputMode('new');
+  }, [isLoadingSavedMethods, savedCards.length]);
 
   async function pickImage() {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -179,7 +181,7 @@ export default function AddBalanceScreen() {
     setSubmissionError('');
 
     try {
-      const cardRequest = fundingMode === 'card' && selectedCard;
+      const cardRequest = fundingMode === 'card' ? cardForRequest : undefined;
       const transaction = await createAddBalanceRequest({
         uid: account.uid,
         requestId: requestIdRef.current,
@@ -188,17 +190,14 @@ export default function AddBalanceScreen() {
         trxId: cardRequest ? undefined : trxId.trim(),
         proofName: cardRequest ? undefined : proofImageName || 'payment-proof.jpg',
         proofImageUri: cardRequest ? undefined : proofImageUri || undefined,
-        paymentSourceId: cardRequest ? cardRequest.id : undefined,
+        paymentSourceId: cardRequest?.id || undefined,
         paymentSourceLabel: cardRequest ? cardRequest.label : selectedMethod.name,
         paymentSourceMasked: cardRequest ? cardRequest.maskedNumber : paymentAccountNumber,
         paymentSourceType: cardRequest ? 'card' : 'manual',
-        cardVerificationProvided: cardRequest ? true : undefined,
-        cardVerificationMode: cardRequest ? 'test' : undefined,
-        cardVerificationCode: cardRequest ? cardRequest.verificationCode : undefined,
-        cardVerificationLength: cardRequest ? cardRequest.verificationCode.length : undefined,
       });
 
       setShowConfirmationModal(false);
+      setCardCvv('');
       router.replace({
         pathname: '/add-balance-submitted',
         params: {
@@ -213,45 +212,29 @@ export default function AddBalanceScreen() {
     } catch {
       submitLockRef.current = false;
       setIsSubmitting(false);
+      setShowConfirmationModal(false);
       setSubmissionError(t('addBalance.balanceAddFailed'));
     }
   }
 
+  const totalSteps = isManualMode ? (providerLocked ? 3 : 4) : 3;
+  const visibleStep = step === 3 ? totalSteps : step + 1 - (providerLocked ? 1 : 0);
+  const canAdvance = step === 0 ? (isManualMode ? Boolean(selectedMethod) : canUseCard)
+    : step === 1 ? Number.isFinite(numericAmount) && numericAmount > 0
+    : step === 2 ? paymentAccountNumber.length > 0 && !isLoadingPaymentAccount && (trxId.trim().length >= 6 || Boolean(proofImageUri))
+    : canSubmit;
+  function goBack() {
+    if (step === 0 || (providerLocked && step === 1)) router.back();
+    else setStep(step === 3 && !isManualMode ? 1 : step - 1);
+  }
+  function goNext() {
+    if (step === 3) handleShowConfirmation();
+    else setStep(step === 1 && !isManualMode ? 3 : step + 1);
+  }
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.header}>
-          <Pressable style={styles.backButton} onPress={() => router.back()} accessibilityRole="button">
-            <MaterialIcons name="arrow-back" size={22} color={palette.ink} />
-          </Pressable>
-          <View style={styles.headerCopy}>
-            <Text style={styles.kicker}>{t('addBalancePage.kicker')}</Text>
-            <Text style={styles.title}>{t('addBalancePage.title')}</Text>
-          </View>
-          <View style={styles.secureBadge}>
-            <MaterialIcons name="verified-user" size={18} color={palette.primary} />
-          </View>
-        </View>
-
-        <View style={styles.heroCard}>
-          <View style={styles.heroIcon}>
-            <MaterialIcons name="account-balance-wallet" size={28} color={palette.surface} />
-          </View>
-          <View style={styles.heroCopy}>
-            <Text style={styles.heroTitle}>{t('addBalancePage.heroTitle')}</Text>
-            <Text style={styles.heroMeta}>{t('addBalancePage.heroMeta')}</Text>
-          </View>
-        </View>
-
-        <View style={styles.stepRail}>
-          <StepBadge number="1" label={t('addBalancePage.stepPay')} active />
-          <View style={styles.stepLine} />
-          <StepBadge number="2" label={t('addBalancePage.stepSubmit')} active />
-          <View style={styles.stepLine} />
-          <StepBadge number="3" label={t('addBalancePage.stepApprove')} />
-        </View>
-
-        <View style={styles.panel}>
+    <>
+      <TransactionStep title={t('addBalancePage.title')} step={visibleStep} total={totalSteps} onBack={goBack} onNext={goNext} disabled={!canAdvance} busy={isSubmitting} nextLabel={step === 3 ? t('generic.reviewSubmit') : undefined}>
+        {step === 0 ? (<>        {!provider && <View style={styles.panel}>
           <Text style={styles.panelTitle}>{t('addBalancePage.fundingSource')}</Text>
           <View style={styles.modeRow}>
             <Pressable
@@ -281,20 +264,20 @@ export default function AddBalanceScreen() {
               />
               <View style={styles.modeCopy}>
                 <Text style={[styles.modeTitle, !isManualMode && styles.modeTitleActive]}>
-                  {t('addBalancePage.savedCard')}
+                  {t('addBalancePage.cardPayment')}
                 </Text>
                 <Text style={styles.modeMeta}>{t('addBalancePage.savedCardMeta')}</Text>
               </View>
             </Pressable>
           </View>
-        </View>
+        </View>}
 
         {isManualMode ? (
           <>
-            <View style={styles.panel}>
+            {!providerLocked && <View style={styles.panel}>
               <Text style={styles.panelTitle}>{t('addBalancePage.chooseChannel')}</Text>
               <View style={styles.methodGrid}>
-                {addBalanceMethods.map((method) => {
+                {addBalanceMethods.filter(method => provider !== 'Bank' || method.type === 'Bank account').map((method) => {
                   const active = method.name === selectedMethod.name;
 
                   return (
@@ -309,9 +292,9 @@ export default function AddBalanceScreen() {
                   );
                 })}
               </View>
-            </View>
+            </View>}
 
-            <View style={styles.accountCard}>
+            {!providerLocked ? (<View style={styles.accountCard}>
               <View style={styles.accountTop}>
                 <View style={[styles.accountIcon, { backgroundColor: selectedMethod.tone }]}>
                   <MaterialIcons name={selectedMethod.icon} size={24} color={selectedMethod.color} />
@@ -333,68 +316,87 @@ export default function AddBalanceScreen() {
               <Text style={styles.accountInstruction}>
                 {t(selectedMethod.type === 'Mobile wallet' ? 'addBalancePage.mobileInstruction' : 'addBalancePage.bankInstruction')}
               </Text>
-            </View>
+            </View>) : null}
           </>
         ) : (
           <View style={styles.panel}>
-            <View style={styles.cardPanelHeader}>
-              <Text style={styles.panelTitle}>{t('addBalancePage.chooseSavedCard')}</Text>
+            <Text style={styles.panelTitle}>{t('addBalancePage.chooseCard')}</Text>
+            <View style={styles.cardChoiceRow}>
               <Pressable
-                style={styles.addCardButton}
-                onPress={() => router.push(paymentMethodsRoute)}
+                style={[styles.cardChoiceButton, cardInputMode === 'saved' && styles.cardChoiceActive]}
+                onPress={() => { setCardInputMode('saved'); setCardCvv(''); }}
                 accessibilityRole="button">
-                <MaterialIcons name="add" size={18} color={palette.primary} />
-                <Text style={styles.addCardButtonText}>{t('common.add')}</Text>
+                <Text style={styles.cardChoiceText}>{t('addBalancePage.savedCard')}</Text>
+              </Pressable>
+              <Pressable
+                style={[styles.cardChoiceButton, cardInputMode === 'new' && styles.cardChoiceActive]}
+                onPress={() => { setCardInputMode('new'); setCardCvv(''); }}
+                accessibilityRole="button">
+                <Text style={styles.cardChoiceText}>{t('addBalancePage.newCard')}</Text>
               </Pressable>
             </View>
-            {isLoadingSavedMethods ? (
-              <Text style={styles.emptyCardText}>{t('common.loading')}</Text>
-            ) : savedCards.length === 0 ? (
-              <View style={styles.emptyCardPanel}>
-                <Text style={styles.emptyCardTitle}>{t('addBalancePage.noSavedCards')}</Text>
-                <Text style={styles.emptyCardMeta}>{t('addBalancePage.noSavedCardsMeta')}</Text>
-                <Pressable
-                  style={styles.manageCardButton}
-                  onPress={() => router.push(paymentMethodsRoute)}
-                  accessibilityRole="button">
-                  <MaterialIcons name="credit-card" size={18} color={palette.surface} />
-                  <Text style={styles.manageCardButtonText}>{t('addBalancePage.addSavedCard')}</Text>
-                </Pressable>
-              </View>
+            {cardInputMode === 'saved' ? (
+              isLoadingSavedMethods ? <Text style={styles.emptyCardText}>{t('common.loading')}</Text>
+                : savedCards.length === 0 ? <Text style={styles.emptyCardText}>{t('addBalancePage.noSavedCards')}</Text>
+                  : savedCards.map((card) => {
+                    const active = card.id === selectedCard?.id;
+                    return (
+                      <Pressable
+                        key={card.id}
+                        style={[styles.savedCardRow, active && styles.savedCardRowActive]}
+                        onPress={() => { setSelectedCardId(card.id); setCardCvv(''); }}
+                        accessibilityRole="button">
+                        <View style={styles.savedCardIcon}>
+                          <MaterialIcons name="credit-card" size={22} color={palette.coral} />
+                        </View>
+                        <View style={styles.savedCardCopy}>
+                          <Text style={styles.savedCardTitle}>{card.label}</Text>
+                          <Text style={styles.savedCardMeta}>{card.cardholderName} | {card.expiryMonth}/{card.expiryYear}</Text>
+                        </View>
+                        <MaterialIcons name={active ? 'radio-button-checked' : 'radio-button-unchecked'} size={22} color={active ? palette.primary : palette.muted} />
+                      </Pressable>
+                    );
+                  })
             ) : (
-              savedCards.map((card) => {
-                const active = card.id === selectedCard?.id;
-
-                return (
-                  <Pressable
-                    key={card.id}
-                    style={[styles.savedCardRow, active && styles.savedCardRowActive]}
-                    onPress={() => setSelectedCardId(card.id)}
-                    accessibilityRole="button">
-                    <View style={styles.savedCardIcon}>
-                      <MaterialIcons name="credit-card" size={22} color={palette.coral} />
-                    </View>
-                    <View style={styles.savedCardCopy}>
-                      <Text style={styles.savedCardTitle}>{card.label}</Text>
-                      <Text style={styles.savedCardMeta}>
-                        {card.cardholderName} | {card.expiryMonth}/{card.expiryYear}
-                      </Text>
-                    </View>
-                    <MaterialIcons
-                      name={active ? 'radio-button-checked' : 'radio-button-unchecked'}
-                      size={22}
-                      color={active ? palette.primary : palette.muted}
-                    />
-                  </Pressable>
-                );
-              })
+              <>
+                <TextInput style={styles.cardInput} placeholder={t('paymentMethods.cardholderName')} placeholderTextColor={palette.muted} value={cardholderName} onChangeText={setCardholderName} autoCapitalize="words" />
+                <TextInput style={styles.cardInput} placeholder={t('paymentMethods.cardNumber')} placeholderTextColor={palette.muted} keyboardType="number-pad" maxLength={23} value={cardNumber} onChangeText={(value) => setCardNumber(value.replace(/\D/g, '').slice(0, 19).replace(/(.{4})/g, '$1 ').trim())} />
+                <View style={styles.cardExpiryRow}>
+                  <TextInput style={[styles.cardInput, styles.cardExpiryInput]} placeholder={t('paymentMethods.expiryMonth')} placeholderTextColor={palette.muted} keyboardType="number-pad" maxLength={2} value={expiryMonth} onChangeText={(value) => setExpiryMonth(value.replace(/\D/g, '').slice(0, 2))} />
+                  <TextInput style={[styles.cardInput, styles.cardExpiryInput]} placeholder={t('paymentMethods.expiryYear')} placeholderTextColor={palette.muted} keyboardType="number-pad" maxLength={4} value={expiryYear} onChangeText={(value) => setExpiryYear(value.replace(/\D/g, '').slice(0, 4))} />
+                </View>
+              </>
             )}
-            {selectedCard ? <Text style={styles.cardCvvNote}>{t('addBalancePage.savedCardVerificationNote')}</Text> : null}
+            <TextInput style={styles.cardInput} placeholder={t('addBalancePage.cardCvvPlaceholder')} placeholderTextColor={palette.muted} keyboardType="number-pad" secureTextEntry maxLength={4} value={cardCvv} onChangeText={(value) => setCardCvv(value.replace(/\D/g, '').slice(0, 4))} />
+            <Text style={styles.cardCvvNote}>{t('addBalancePage.cardCvvNote')}</Text>
             <Text style={styles.accountInstruction}>{t('addBalancePage.cardRequestMeta')}</Text>
           </View>
         )}
 
-        <View style={styles.amountPanel}>
+</>) : null}
+        {step === 1 ? (<>{providerLocked ? (<View style={styles.accountCard}>
+              <View style={styles.accountTop}>
+                <View style={[styles.accountIcon, { backgroundColor: selectedMethod.tone }]}>
+                  <MaterialIcons name={selectedMethod.icon} size={24} color={selectedMethod.color} />
+                </View>
+                <View style={styles.accountCopy}>
+                  <Text style={styles.accountName}>{selectedMethod.receiverName}</Text>
+                  <Text style={styles.accountType}>{t(getMethodTypeKey(selectedMethod))}</Text>
+                </View>
+                <View style={styles.copyButton}>
+                  <MaterialIcons name="content-copy" size={18} color={palette.primary} />
+                </View>
+              </View>
+              <Text style={[
+                styles.accountNumber,
+                !paymentAccountNumber && styles.accountNumberMuted,
+              ]}>
+                {accountNumberText}
+              </Text>
+              <Text style={styles.accountInstruction}>
+                {t(selectedMethod.type === 'Mobile wallet' ? 'addBalancePage.mobileInstruction' : 'addBalancePage.bankInstruction')}
+              </Text>
+            </View>) : null}        <View style={styles.amountPanel}>
           <Text style={styles.panelTitle}>{t('addBalancePage.amountPaid')}</Text>
           <View style={styles.amountBox}>
             <Text style={styles.currencyPrefix}>BDT</Text>
@@ -429,7 +431,8 @@ export default function AddBalanceScreen() {
           </View>
         </View>
 
-        {isManualMode ? (
+</>) : null}
+        {step === 2 ? (<>        {isManualMode ? (
           <View style={styles.panel}>
             <Text style={styles.panelTitle}>{t('addBalancePage.submitProof')}</Text>
             <View style={styles.inputRow}>
@@ -472,13 +475,15 @@ export default function AddBalanceScreen() {
           </View>
         ) : null}
 
-        <View style={styles.summaryCard}>
-          <SummaryRow label={t('generic.channel')} value={isManualMode ? selectedMethod.name : selectedCard?.label || t('paymentMethods.card')} />
+</>) : null}
+        {step === 3 ? (<>
+                  <View style={styles.summaryCard}>
+          <SummaryRow label={t('generic.channel')} value={isManualMode ? selectedMethod.name : cardForRequest?.label || t('paymentMethods.card')} />
           <SummaryRow label={t('generic.paidAmount')} value={formatCurrency(numericAmount)} />
           {isManualMode ? (
             <SummaryRow label={t('addBalance.transactionId')} value={trxId || t('generic.notProvided')} />
           ) : (
-            <SummaryRow label={t('paymentMethods.card')} value={selectedCard?.maskedNumber || t('generic.required')} />
+            <SummaryRow label={t('paymentMethods.card')} value={cardForRequest?.maskedNumber || t('generic.required')} />
           )}
           {isManualMode && proofImageName ? <SummaryRow label={t('generic.proofImage')} value={`✓ ${t('addBalancePage.attached')}`} /> : null}
           <View style={styles.summaryDivider} />
@@ -497,26 +502,19 @@ export default function AddBalanceScreen() {
           </View>
         </View>
 
-        <PendingTransactionsPanel requests={pendingBalanceRequests} />
 
-        {submissionError ? <Text style={styles.errorText}>{submissionError}</Text> : null}
-
-        <Pressable
-          style={[styles.primaryButton, !canSubmit && styles.primaryButtonDisabled]}
-          disabled={!canSubmit}
-          onPress={handleShowConfirmation}
-          accessibilityRole="button">
-          <MaterialIcons name="lock" size={18} color={palette.surface} />
-          <Text style={styles.primaryButtonText}>
-            {isSubmitting ? t('common.loading') : t('generic.reviewSubmit')}
-          </Text>
-        </Pressable>
-
-        <AddBalanceConfirmationModal
+          {submissionError ? <Text style={styles.errorText}>{submissionError}</Text> : null}
+          <Pressable style={styles.pendingLink} onPress={() => router.push('/pending-transactions')} accessibilityRole="button">
+            <MaterialIcons name="history" size={19} color={palette.primary} />
+            <Text style={styles.pendingLinkText}>{t('generic.pendingTransactions')}</Text>
+          </Pressable>
+        </>) : null}
+      </TransactionStep>
+              <AddBalanceConfirmationModal
           visible={showConfirmationModal}
           selectedMethod={isManualMode ? selectedMethodWithAccount : cardReviewMethod}
           amount={numericAmount}
-          trxId={isManualMode ? trxId : selectedCard?.maskedNumber || ''}
+          trxId={isManualMode ? trxId : cardForRequest?.maskedNumber || ''}
           proofImageUri={isManualMode ? proofImageUri : undefined}
           proofFileName={isManualMode ? proofImageName : undefined}
           referenceLabel={isManualMode ? undefined : t('paymentMethods.card')}
@@ -524,59 +522,7 @@ export default function AddBalanceScreen() {
           onConfirm={handleConfirmSubmission}
           onEdit={() => setShowConfirmationModal(false)}
         />
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-function PendingTransactionsPanel({ requests }: { requests: PendingBalanceRequest[] }) {
-  const { t } = useTranslation();
-
-  return (
-    <View style={styles.pendingPanel}>
-      <View style={styles.pendingPanelHeader}>
-        <View>
-          <Text style={styles.pendingPanelTitle}>{t('generic.pendingTransactions')}</Text>
-          <Text style={styles.pendingPanelMeta}>{t('addBalancePage.pendingWaiting', { count: requests.length })}</Text>
-        </View>
-        <View style={styles.pendingCountBadge}>
-          <Text style={styles.pendingCountText}>{requests.length}</Text>
-        </View>
-      </View>
-      {requests.length === 0 ? (
-        <Text style={styles.emptyPendingText}>{t('generic.noPendingTransactions')}</Text>
-      ) : (
-        requests.map((request) => (
-          <View key={request.id} style={styles.pendingRequestRow}>
-            <View style={[styles.requestIcon, { backgroundColor: request.tone }]}>
-              <MaterialIcons name={request.icon} size={21} color={request.color} />
-            </View>
-            <View style={styles.requestCopy}>
-              <Text style={styles.requestTitle}>{request.method}</Text>
-              <Text style={styles.requestMeta}>
-                {request.id}  |  {request.submittedAt}
-              </Text>
-              <Text style={styles.requestProof}>{request.trxId}</Text>
-            </View>
-            <View style={styles.requestRight}>
-              <Text style={styles.requestAmount}>{formatCurrency(request.amount)}</Text>
-              <Text style={styles.requestStatus}>{request.status}</Text>
-            </View>
-          </View>
-        ))
-      )}
-    </View>
-  );
-}
-
-function StepBadge({ number, label, active }: { number: string; label: string; active?: boolean }) {
-  return (
-    <View style={styles.stepItem}>
-      <View style={[styles.stepCircle, active && styles.stepCircleActive]}>
-        <Text style={[styles.stepNumber, active && styles.stepNumberActive]}>{number}</Text>
-      </View>
-      <Text style={styles.stepLabel}>{label}</Text>
-    </View>
+    </>
   );
 }
 
@@ -598,6 +544,8 @@ function SummaryRow({
 }
 
 const styles = StyleSheet.create({
+  pendingLink: { flexDirection: "row", alignItems: "center", gap: 8, minHeight: 44 },
+  pendingLinkText: { color: palette.primary, fontSize: 14 },
   screen: {
     flex: 1,
     backgroundColor: palette.background,
@@ -733,6 +681,21 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '900',
   },
+  cardChoiceRow: { flexDirection: 'row', gap: 10 },
+  cardChoiceButton: {
+    flex: 1, minHeight: 44, alignItems: 'center', justifyContent: 'center',
+    borderWidth: 1, borderColor: palette.border, borderRadius: 8,
+    backgroundColor: palette.background,
+  },
+  cardChoiceActive: { borderColor: palette.primary, backgroundColor: palette.softPrimary },
+  cardChoiceText: { color: palette.ink, fontSize: 13, fontWeight: '800' },
+  cardInput: {
+    minHeight: 50, borderWidth: 1, borderColor: palette.border,
+    borderRadius: 8, backgroundColor: palette.background,
+    paddingHorizontal: 12, color: palette.ink, fontSize: 14,
+  },
+  cardExpiryRow: { flexDirection: 'row', gap: 10 },
+  cardExpiryInput: { flex: 1 },
   modeRow: {
     gap: 10,
   },
