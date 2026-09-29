@@ -42,6 +42,8 @@ app-example
 # generated native folders
 /ios
 /android
+**/build/
+**/.gradle/
 
 # local APK build outputs
 *.apk

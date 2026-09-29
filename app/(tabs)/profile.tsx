@@ -8,6 +8,7 @@ import { formatCurrency, palette, type WalletIconName } from '@/constants/toppay
 import { useAuth } from '@/contexts/auth';
 import { useSavedPaymentMethods } from '@/hooks/use-saved-payment-methods';
 import { useWalletData } from '@/hooks/use-wallet-data';
+import { clearCapturedPaymentNotifications, setNotificationCaptureEnabled } from '@/services/notification-capture';
 
 type AccountRow = {
   color: string;
@@ -69,6 +70,8 @@ export default function ProfileScreen() {
     : 0;
 
   function handleSignOut() {
+    setNotificationCaptureEnabled(false);
+    clearCapturedPaymentNotifications();
     logout();
     router.replace('/login');
   }
