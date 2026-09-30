@@ -24,10 +24,10 @@ function readParam(value: string | string[] | undefined, fallback: string) {
 function toPendingBalanceRequest(transaction: WalletTransaction): PendingBalanceRequest {
   return {
     id: transaction.requestId,
-    method: transaction.method || 'Add balance',
+    method: transaction.method || 'ব্যালেন্স যোগ',
     amount: transaction.amount,
     trxId: transaction.trxId || 'N/A',
-    proofName: transaction.proofName || 'Not attached',
+    proofName: transaction.proofName || 'সংযুক্ত নেই',
     submittedAt: transaction.createdAtText,
     eta: 'Waiting for approval',
     status: 'Pending review',
@@ -44,7 +44,7 @@ export default function AddBalanceSubmittedScreen() {
   const { pendingTransactions } = useWalletData(account?.uid);
   const params = useLocalSearchParams();
   const requestId = readParam(params.requestId, 'ADD-NEW');
-  const method = readParam(params.method, 'Add balance');
+  const method = readParam(params.method, 'ব্যালেন্স যোগ');
   const trxId = readParam(params.trxId, 'N/A');
   const proofName = readParam(params.proofName, 'payment-proof.jpg');
   const proofImageUri = readParam(params.proofImageUri, '');
@@ -56,7 +56,7 @@ export default function AddBalanceSubmittedScreen() {
     amount,
     trxId,
     proofName,
-    submittedAt: 'Just now',
+    submittedAt: 'এইমাত্র',
     eta: 'Waiting for approval',
     status: 'Pending review',
     color: palette.amber,
@@ -169,7 +169,7 @@ function PendingTransactionsPanel({ requests }: { requests: PendingBalanceReques
           </View>
           <View style={styles.requestRight}>
             <Text style={styles.requestAmount}>{formatCurrency(request.amount)}</Text>
-            <Text style={styles.requestStatus}>{request.status}</Text>
+            <Text style={styles.requestStatus}>{t('generic.pendingReview')}</Text>
           </View>
         </View>
       ))}

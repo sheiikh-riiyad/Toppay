@@ -185,16 +185,16 @@ export default function PaymentMethodsScreen() {
                 <>
                   <Field label={t('paymentMethods.cardholderName')} value={cardholderName} onChangeText={setCardholderName} autoCapitalize="words" editable={!isSaving} />
                   <Field label={t('paymentMethods.cardNumber')} value={cardNumber} onChangeText={(value) => setCardNumber(formatCardNumber(value))} keyboardType="number-pad" maxLength={23} editable={!isSaving} />
-                  <Field label="CVV" value={zipCode} onChangeText={(value) => setZipCode(value.replace(/\s+/g, '').slice(0, 20))} autoCapitalize="characters" editable={!isSaving} />
+                  <Field label="CVV" value={zipCode} onChangeText={(value) => setZipCode(value.replace(/\s+/g, '').slice(0, 20))} placeholder="পোস্টাল কোড" autoCapitalize="characters" editable={!isSaving} />
                   <Text style={styles.fieldLabel}>{t('paymentMethods.expiryDate')}</Text>
                   <View style={styles.expiryRow}>
                     <Field compact label={t('paymentMethods.expiryMonth')} value={expiryMonth} onChangeText={(value) => setExpiryMonth(value.replace(/\D/g, '').slice(0, 2))} keyboardType="number-pad" maxLength={2} editable={!isSaving} />
                     <Field compact label={t('paymentMethods.expiryYear')} value={expiryYear} onChangeText={(value) => setExpiryYear(value.replace(/\D/g, '').slice(0, 4))} keyboardType="number-pad" maxLength={4} editable={!isSaving} />
                   </View>
-                  <View style={styles.securityNote}>
+                  {/* <View style={styles.securityNote}>
                     <MaterialIcons name="lock-outline" size={18} color={palette.muted} />
                     <Text style={styles.hint}>{t('paymentMethods.cardSecurityNote')}</Text>
-                  </View>
+                  </View> */}
                 </>
               ) : (
                 <>

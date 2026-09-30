@@ -137,7 +137,7 @@ export default function CashOutScreen() {
             <Text style={styles.balanceText}>{t('cashOutPage.availableLine', { amount: formatCurrency(balance) })}</Text>
           </View>
           <View style={styles.amountBox}>
-            <Text style={styles.currencyPrefix}>BDT</Text>
+            <Text style={styles.currencyPrefix}>৳</Text>
             <TextInput
               keyboardType="numeric"
               value={amount}

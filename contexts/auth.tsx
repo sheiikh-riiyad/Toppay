@@ -192,6 +192,19 @@ async function saveUserProfile(account: GoogleAccount, pin?: string) {
     }
 
     await batch.commit();
+
+    try {
+      await setDoc(doc(db, 'adminUserDirectory', account.uid), {
+        uid: account.uid,
+        name: account.name,
+        email: account.email,
+        initials: account.initials,
+        createdAt: userSnapshot.data()?.createdAt || timestamp,
+        updatedAt: timestamp,
+      }, { merge: true });
+    } catch {
+      console.warn('Admin directory sync failed; account sign-in is unaffected.');
+    }
   } catch (error) {
     console.warn('Firebase profile write failed:', error);
     throw error;

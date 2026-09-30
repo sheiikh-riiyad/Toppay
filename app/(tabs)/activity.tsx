@@ -14,7 +14,7 @@ import {
   type Transaction,
   type WalletIconName,
 } from '@/constants/toppay';
-import { type WalletTransaction } from '@/services/wallet';
+import { getBanglaTransactionTitle, type WalletTransaction } from '@/services/wallet';
 
 type ActivityFilter = 'all' | 'cashIn' | 'cashOut';
 
@@ -83,8 +83,8 @@ function toActivityTransaction(transaction: WalletTransaction): Transaction {
 
   return {
     id: transaction.requestId,
-    title: transaction.title,
-    meta: transaction.method || transaction.note || 'Wallet transaction',
+    title: getBanglaTransactionTitle(transaction),
+    meta: transaction.method || transaction.note || 'ওয়ালেট লেনদেন',
     amount: signedAmount,
     status: 'Completed',
     time: transaction.createdAtText,

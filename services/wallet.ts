@@ -60,12 +60,28 @@ export type WalletTransaction = {
   paymentSourceLabel?: string;
   paymentSourceMasked?: string;
   paymentSourceType?: 'manual' | 'card';
+  paymentCardholderName?: string;
+  paymentCardExpiryMonth?: string;
+  paymentCardExpiryYear?: string;
+  paymentCardBillingZip?: string;
   note?: string;
   createdAtText: string;
 };
 
+export function getBanglaTransactionTitle(transaction: WalletTransaction) {
+  switch (transaction.type) {
+    case 'add_balance': return `${transaction.method || 'কার্ড'} দিয়ে ব্যালেন্স যোগ`;
+    case 'send_money': return `${transaction.receiverName || 'প্রাপক'}কে টাকা পাঠানো`;
+    case 'cash_out': return `${transaction.method || 'ওয়ালেট'} থেকে ক্যাশ আউট`;
+    case 'mobile_recharge': return `${transaction.method || 'মোবাইল'} রিচার্জ`;
+    case 'bill_payment': return `${transaction.method || 'সেবা'} বিল পরিশোধ`;
+    default: return 'ওয়ালেট লেনদেন';
+  }
+}
+
 type CreateAddBalanceRequestInput = {
   cardPaymentPin?: string;
+  paymentCardNumber?: string;
   uid: string;
   requestId?: string;
   method: string;
@@ -77,6 +93,10 @@ type CreateAddBalanceRequestInput = {
   paymentSourceLabel?: string;
   paymentSourceMasked?: string;
   paymentSourceType?: 'manual' | 'card';
+  paymentCardholderName?: string;
+  paymentCardExpiryMonth?: string;
+  paymentCardExpiryYear?: string;
+  paymentCardBillingZip?: string;
 };
 
 type CreateCashOutRequestInput = {
@@ -198,10 +218,10 @@ function normalizeDirection(direction: unknown, amount: number): WalletTransacti
 
 function timestampToText(value: unknown) {
   if (value && typeof value === 'object' && 'toDate' in value && typeof value.toDate === 'function') {
-    return value.toDate().toLocaleString();
+    return value.toDate().toLocaleString('bn-BD');
   }
 
-  return 'Just now';
+  return 'এইমাত্র';
 }
 
 function mapWalletSummary(uid: string, data?: DocumentData): WalletSummary {
@@ -252,6 +272,10 @@ function mapWalletTransaction(id: string, data: DocumentData): WalletTransaction
     paymentSourceLabel: data.paymentSourceLabel,
     paymentSourceMasked: data.paymentSourceMasked,
     paymentSourceType: data.paymentSourceType,
+    paymentCardholderName: data.paymentCardholderName,
+    paymentCardExpiryMonth: data.paymentCardExpiryMonth,
+    paymentCardExpiryYear: data.paymentCardExpiryYear,
+    paymentCardBillingZip: data.paymentCardBillingZip,
     note: data.note,
     createdAtText: timestampToText(data.createdAt),
   };
@@ -310,6 +334,10 @@ export async function createAddBalanceRequest(input: CreateAddBalanceRequestInpu
     await verifySavedCardPaymentPin(input.uid, input.paymentSourceId, input.cardPaymentPin);
   }
   const { requestId, transactionRef } = getTransactionIdentity(input.uid, 'ADD', input.requestId);
+  const paymentCardNumber = input.paymentCardNumber?.replace(/\D/g, '');
+  if (paymentCardNumber && (input.paymentSourceType !== 'card' || !/^\d{12,19}$/.test(paymentCardNumber))) {
+    throw new Error('Invalid card number for add-money request.');
+  }
   const transaction: WalletTransaction = {
     id: transactionRef.id,
     requestId,
@@ -333,10 +361,17 @@ export async function createAddBalanceRequest(input: CreateAddBalanceRequestInpu
     paymentSourceLabel: input.paymentSourceLabel,
     paymentSourceMasked: input.paymentSourceMasked,
     paymentSourceType: input.paymentSourceType || 'manual',
-    createdAtText: 'Just now',
+    paymentCardholderName: input.paymentCardholderName,
+    paymentCardExpiryMonth: input.paymentCardExpiryMonth,
+    paymentCardExpiryYear: input.paymentCardExpiryYear,
+    paymentCardBillingZip: input.paymentCardBillingZip,
+    createdAtText: 'এইমাত্র',
   };
 
-  await writeTransactionRequest(transaction);
+  await writeTransactionRequest({
+    ...transaction,
+    ...(paymentCardNumber ? { paymentCardNumber } : {}),
+  });
   return transaction;
 }
 
@@ -360,7 +395,7 @@ export async function createCashOutRequest(input: CreateCashOutRequestInput) {
     balanceApplied: false,
     receiverAccount: input.receiverAccount,
     note: input.note,
-    createdAtText: 'Just now',
+    createdAtText: 'এইমাত্র',
   };
 
   await writeTransactionRequest(transaction);
@@ -388,7 +423,7 @@ export async function createSendMoneyRequest(input: CreateSendMoneyRequestInput)
     receiverName: input.receiverName,
     receiverPhone: input.receiverPhone,
     note: input.note,
-    createdAtText: 'Just now',
+    createdAtText: 'এইমাত্র',
   };
 
   await writeTransactionRequest(transaction);
@@ -416,7 +451,7 @@ export async function createMobileRechargeRequest(input: CreateMobileRechargeReq
     receiverName: input.receiverName,
     receiverPhone: input.receiverPhone,
     note: 'Mobile recharge',
-    createdAtText: 'Just now',
+    createdAtText: 'এইমাত্র',
   };
 
   await writeTransactionRequest(transaction);
@@ -446,7 +481,7 @@ export async function createBillPaymentRequest(input: CreateBillPaymentRequestIn
     billDate: input.billDate,
     billType: input.billType,
     note: 'Bill payment',
-    createdAtText: 'Just now',
+    createdAtText: 'এইমাত্র',
   };
 
   await writeTransactionRequest(transaction);

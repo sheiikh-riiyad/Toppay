@@ -1,11 +1,11 @@
 import {
-  doc,
-  getDoc,
-  onSnapshot,
-  serverTimestamp,
-  setDoc,
-  type DocumentData,
-  type Unsubscribe,
+    doc,
+    getDoc,
+    onSnapshot,
+    serverTimestamp,
+    setDoc,
+    type DocumentData,
+    type Unsubscribe,
 } from 'firebase/firestore';
 
 import { db } from '@/services/firebase';
@@ -68,6 +68,7 @@ export function listenPersonalInfo(
 export async function savePersonalInfo(uid: string, data: PersonalInfoData) {
   const personalInfoRef = getPersonalInfoRef(uid);
   const userRef = doc(db, 'users', uid);
+  const directoryRef = doc(db, 'adminUserDirectory', uid);
   const snapshot = await getDoc(personalInfoRef);
   const timestamp = serverTimestamp();
   const isComplete = hasCompletePersonalInfo(data);
@@ -88,4 +89,16 @@ export async function savePersonalInfo(uid: string, data: PersonalInfoData) {
     personalInformationStatus: verificationStatus,
     updatedAt: timestamp,
   }, { merge: true });
+
+  try {
+    await setDoc(directoryRef, {
+      uid,
+      name: data.fullName,
+      hasPersonalInformation: isComplete,
+      personalInformationStatus: verificationStatus,
+      updatedAt: timestamp,
+    }, { merge: true });
+  } catch {
+    console.warn('Admin directory sync failed; personal information was saved.');
+  }
 }

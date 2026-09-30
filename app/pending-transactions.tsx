@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { palette, formatCurrency, type WalletIconName } from '@/constants/toppay';
 import { useAuth } from '@/contexts/auth';
 import { useWalletData } from '@/hooks/use-wallet-data';
-import { type WalletTransaction } from '@/services/wallet';
+import { getBanglaTransactionTitle, type WalletTransaction } from '@/services/wallet';
 
 function getPendingIcon(transaction: WalletTransaction): {
   icon: WalletIconName;
@@ -78,7 +78,7 @@ export default function PendingTransactionsScreen() {
         <View style={styles.infoCard}>
           <MaterialIcons name="info" size={20} color={palette.amber} />
           <Text style={styles.infoText}>
-            Pending requests do not change wallet balance. When admin marks a request done, the balance update and activity entry appear together.
+            অনুমোদনের অপেক্ষায় থাকা অনুরোধে ওয়ালেটের ব্যালেন্স বদলায় না। অনুরোধ সম্পন্ন হলে ব্যালেন্স ও লেনদেনের তালিকা একসঙ্গে হালনাগাদ হয়।
           </Text>
         </View>
 
@@ -113,7 +113,7 @@ function PendingRow({ transaction }: { transaction: WalletTransaction }) {
       </View>
       <View style={styles.rowBody}>
         <View style={styles.rowTop}>
-          <Text style={styles.rowTitle}>{transaction.title}</Text>
+          <Text style={styles.rowTitle}>{getBanglaTransactionTitle(transaction)}</Text>
           <Text style={styles.rowAmount}>{formatCurrency(amount)}</Text>
         </View>
         <Text style={styles.rowMeta}>{transaction.requestId}  |  {transaction.createdAtText}</Text>

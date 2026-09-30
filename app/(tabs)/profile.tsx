@@ -8,7 +8,6 @@ import { formatCurrency, palette, type WalletIconName } from '@/constants/toppay
 import { useAuth } from '@/contexts/auth';
 import { useSavedPaymentMethods } from '@/hooks/use-saved-payment-methods';
 import { useWalletData } from '@/hooks/use-wallet-data';
-import { clearCapturedPaymentNotifications, setNotificationCaptureEnabled } from '@/services/notification-capture';
 
 type AccountRow = {
   color: string;
@@ -70,8 +69,6 @@ export default function ProfileScreen() {
     : 0;
 
   function handleSignOut() {
-    setNotificationCaptureEnabled(false);
-    clearCapturedPaymentNotifications();
     logout();
     router.replace('/login');
   }
@@ -113,13 +110,13 @@ export default function ProfileScreen() {
           </View>
           <View style={styles.limitBottom}>
             <Text style={styles.limitMeta}>
-              {t('profilePage.usedAmount', { amount: formatCurrency(monthlyUsed).replace('BDT ', '') })}
+              {t('profilePage.usedAmount', { amount: formatCurrency(monthlyUsed).replace('৳', '') })}
             </Text>
             <Text style={styles.limitMeta}>{usedPercent}%</Text>
           </View>
           <Text style={styles.limitAvailable}>
             {t('profilePage.availableAmount', {
-              amount: formatCurrency(Math.max(monthlyLimit - monthlyUsed, 0)).replace('BDT ', ''),
+              amount: formatCurrency(Math.max(monthlyLimit - monthlyUsed, 0)).replace('৳', ''),
             })}
           </Text>
         </View>

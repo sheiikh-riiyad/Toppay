@@ -85,7 +85,7 @@ export default function HomeScreen() {
                 accessibilityLabel={balanceVisible ? t('homeDesign.hideBalance') : t('homeDesign.showBalance')}>
                 <View style={styles.currencyBadge}><Text style={styles.currencyText}>৳</Text></View>
                 <Text style={styles.balanceText} numberOfLines={1}>
-                  {balanceVisible ? (isLoading ? t('common.loading') : error || !summary ? t('homeDesign.balanceUnavailable') : formatCurrency(summary.balance)) : t('homeDesign.showBalance')}
+                  {balanceVisible ? (isLoading ? t('common.loading') : error || !summary ? t('homeDesign.balanceUnavailable') : formatCurrency(summary.balance).replace('৳', '')) : t('homeDesign.showBalance')}
                 </Text>
               </Pressable>
             </View>

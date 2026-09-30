@@ -560,28 +560,6 @@
     "ticketsAndChat": "Tickets and chat",
     "signOut": "Sign Out"
   },
-  "notificationCapture": {
-    "accessTitle": "Allow notification access",
-    "accessDescription": "To continue, enable Toppay in Android's Notification Access settings. Return here after granting access.",
-    "title": "Notification testing",
-    "profileMeta": "View notifications from all apps",
-    "introTitle": "Test notification capture",
-    "description": "For testing, capture new notifications from all apps after you grant Android Notification Access.",
-    "privacy": "This test also captures sensitive notifications such as codes. The latest 50 stay on this phone and are not uploaded to Toppay. Clear them after testing.",
-    "androidOnly": "This feature is available on Android.",
-    "rebuild": "Install a new Android build to enable notification capture.",
-    "on": "Capture is on",
-    "off": "Capture is off",
-    "permissionPending": "Allow Toppay Notification Access in Android settings",
-    "enable": "Enable capture",
-    "pause": "Pause capture",
-    "openSettings": "Open Notification Access settings",
-    "recent": "Recent notifications",
-    "empty": "No notifications captured yet.",
-    "clear": "Clear",
-    "clearTitle": "Clear notifications?",
-    "clearConfirm": "Remove all captured notifications from this phone?"
-  },
   "paymentMethods": {
     "kicker": "Wallet Funding",
     "title": "Cards & Banks",

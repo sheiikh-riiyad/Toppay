@@ -18,6 +18,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import AdminWebLogin from '@/components/AdminWebLogin';
 import AppLogo from '@/components/AppLogo';
 import { palette } from '@/constants/toppay';
 import { useAuth } from '@/contexts/auth';
@@ -70,8 +71,13 @@ if (Platform.OS !== 'web') {
 }
 
 export default function LoginScreen() {
+  if (Platform.OS === 'web') return <AdminWebLogin />;
+  return <MobileLoginScreen />;
+}
+
+function MobileLoginScreen() {
   const router = useRouter();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const {
     account,
     connectGoogleAccount,
@@ -314,11 +320,6 @@ export default function LoginScreen() {
           accessibilityRole="button" accessibilityLabel={router.canGoBack() || googleConnected ? t('common.back') : t('common.help')}>
           <MaterialIcons name={router.canGoBack() || googleConnected ? 'arrow-back' : 'help-outline'} size={26} color={palette.primary} />
         </Pressable>
-        <Pressable style={styles.languageButton} disabled={isLoginBusy}
-          onPress={() => void i18n.changeLanguage(i18n.language.startsWith('bn') ? 'en' : 'bn')}
-          accessibilityRole="button" accessibilityLabel={t('common.switchLanguage')}>
-          <Text style={styles.languageText}>{i18n.language.startsWith('bn') ? 'English' : t('common.bangla')}</Text>
-        </Pressable>
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -393,6 +394,9 @@ export default function LoginScreen() {
             </>
           )}
           {error ? <Text accessibilityRole="alert" style={styles.errorText}>{error}</Text> : null}
+          <Pressable style={styles.textButton} disabled={isLoginBusy} onPress={() => router.push('/admin-login')} accessibilityRole="button">
+            <Text style={styles.linkText}>Admin sign in</Text>
+          </Pressable>
           {!hasAccount ? <Pressable style={styles.textButton} disabled={isLoginBusy} onPress={() => router.push('/support')} accessibilityRole="button">
             <Text style={styles.supportText}>{t('login.needSupport')}</Text>
           </Pressable> : null}
@@ -403,7 +407,7 @@ export default function LoginScreen() {
         {hasAccount ? (
           <Pressable style={styles.pinSupportButton} disabled={isLoginBusy} onPress={() => router.push('/support')} accessibilityRole="button">
             <MaterialIcons name="support-agent" size={21} color={palette.primary} />
-            <Text style={styles.languageText}>{t('login.needSupport')}</Text>
+            <Text style={styles.supportText}>{t('login.needSupport')}</Text>
           </Pressable>
         ) : null}
         <View style={styles.stepTrack}>
@@ -524,8 +528,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FAFAFA' },
   topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, minHeight: 48 },
   backButton: { minWidth: 44, minHeight: 44, justifyContent: 'center' },
-  languageButton: { borderWidth: 1, borderColor: palette.primary, borderRadius: 24, paddingHorizontal: 16, minHeight: 36, justifyContent: 'center' },
-  languageText: { color: palette.primary, fontSize: 15 },
   content: { flexGrow: 1, paddingHorizontal: 22, paddingTop: 40, paddingBottom: 28 },
   brandBlock: { alignItems: 'flex-start', marginBottom: 26, gap: 22 },
   heading: { color: '#505050', fontSize: 27, lineHeight: 37, fontWeight: '500' },

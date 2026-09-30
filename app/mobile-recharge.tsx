@@ -189,7 +189,7 @@ export default function MobileRechargeScreen() {
         <View style={styles.amountPanel}>
           <Text style={styles.panelTitle}>{t('generic.amount')}</Text>
           <View style={styles.amountBox}>
-            <Text style={styles.currencyPrefix}>BDT</Text>
+            <Text style={styles.currencyPrefix}>৳</Text>
             <TextInput
               keyboardType="numeric"
               value={amount}

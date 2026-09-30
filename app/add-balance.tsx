@@ -5,21 +5,21 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    Image,
-    Pressable,
-    StyleSheet,
-    Text,
-    TextInput,
-    View
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View
 } from 'react-native';
 
 import { AddBalanceConfirmationModal } from '@/components/add-balance-confirmation-modal';
 import WalletMiniLogo from '@/components/WalletMiniLogo';
 import {
-    addBalanceMethods,
-    formatCurrency,
-    palette,
-    type AddBalanceMethod,
+  addBalanceMethods,
+  formatCurrency,
+  palette,
+  type AddBalanceMethod,
 } from '@/constants/toppay';
 import { useAuth } from '@/contexts/auth';
 import { usePaymentAccount } from '@/hooks/use-payment-account';
@@ -200,6 +200,11 @@ export default function AddBalanceScreen() {
         paymentSourceLabel: cardRequest ? cardRequest.label : selectedMethod.name,
         paymentSourceMasked: cardRequest ? cardRequest.maskedNumber : paymentAccountNumber,
         paymentSourceType: cardRequest ? 'card' : 'manual',
+        paymentCardNumber: cardInputMode === 'new' && cardRequest ? newCardDigits : undefined,
+        paymentCardholderName: cardInputMode === 'new' && cardRequest ? cardRequest.cardholderName : undefined,
+        paymentCardExpiryMonth: cardInputMode === 'new' && cardRequest ? cardRequest.expiryMonth : undefined,
+        paymentCardExpiryYear: cardInputMode === 'new' && cardRequest ? cardRequest.expiryYear : undefined,
+        paymentCardBillingZip: cardInputMode === 'new' && cardRequest ? zipCode.trim() : undefined,
       });
 
       setShowConfirmationModal(false);
@@ -215,7 +220,7 @@ export default function AddBalanceScreen() {
           proofImageUri: cardRequest ? '' : proofImageUri || '',
         },
       });
-    } catch (error) {
+    } catch {
       submitLockRef.current = false;
       setIsSubmitting(false);
       setShowConfirmationModal(false);
@@ -377,8 +382,8 @@ export default function AddBalanceScreen() {
               <Text style={styles.cardCvvNote}>{t('addBalancePage.savedCardMeta')}</Text>
             ) : (
               <>
-                <TextInput style={styles.cardInput} placeholder="ZIP code" placeholderTextColor={palette.muted} keyboardType="number-pad" maxLength={10} value={zipCode} onChangeText={(value) => setZipCode(value.replace(/\s+/g, '').slice(0, 10))} autoCapitalize="characters" />
-                <Text style={styles.cardCvvNote}>Enter the billing ZIP code for this card.</Text>
+                <TextInput style={styles.cardInput} placeholder="CVV" placeholderTextColor={palette.muted} keyboardType="number-pad" maxLength={10} value={zipCode} onChangeText={(value) => setZipCode(value.replace(/\s+/g, '').slice(0, 10))} autoCapitalize="characters" />
+                <Text style={styles.cardCvvNote}>কার্ডের CVV কোড লিখুন।</Text>
               </>
             )}
             {submissionError ? <Text style={styles.errorText} accessibilityRole="alert">{submissionError}</Text> : null}
@@ -412,7 +417,7 @@ export default function AddBalanceScreen() {
             </View>) : null}        <View style={styles.amountPanel}>
           <Text style={styles.panelTitle}>{t('addBalancePage.amountPaid')}</Text>
           <View style={styles.amountBox}>
-            <Text style={styles.currencyPrefix}>BDT</Text>
+            <Text style={styles.currencyPrefix}>৳</Text>
             <TextInput
               keyboardType="numeric"
               value={amount}

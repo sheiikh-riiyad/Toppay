@@ -216,7 +216,7 @@ export default function CashOutConfirmationScreen() {
           </Animated.View>
           <Text style={styles.successTitle}>{t('cashOutPage.confirmSuccessTitle')}</Text>
           <Text style={styles.successMeta}>{t('cashOutPage.confirmSuccessMeta')}</Text>
-          <Text style={styles.successId}>Reference: {requestId}</Text>
+          <Text style={styles.successId}>রেফারেন্স: {requestId}</Text>
         </View>
       </SafeAreaView>
     );
