@@ -25,6 +25,7 @@ function requestAppearance(type: WalletTransactionType): { icon: WalletIconName;
   if (type === 'add_balance') return { icon: 'add-card', color: palette.primary, tone: palette.softPrimary };
   if (type === 'cash_out') return { icon: 'payments', color: palette.amber, tone: palette.softAmber };
   if (type === 'send_money') return { icon: 'send', color: palette.coral, tone: palette.softCoral };
+  if (type === 'bank_transfer') return { icon: 'account-balance', color: palette.cyan, tone: palette.softCyan };
   if (type === 'mobile_recharge') return { icon: 'phone-android', color: palette.cyan, tone: palette.softCyan };
   if (type === 'bill_payment') return { icon: 'receipt-long', color: palette.cyan, tone: palette.softCyan };
   return { icon: 'receipt-long', color: palette.muted, tone: palette.softNeutral };
@@ -198,7 +199,10 @@ export default function AdminDashboard({ email }: { email: string }) {
                       <Detail label="Request ID" value={request.requestId} />
                       <Detail label="Customer" value={request.uid} />
                       {request.receiverName ? <Detail label="Recipient" value={request.receiverName} /> : null}
+                      {request.receiverBankName ? <Detail label="Bank" value={request.receiverBankName} /> : null}
                       {request.receiverPhone || request.receiverAccount ? <Detail label="Account" value={request.receiverPhone || request.receiverAccount || ''} /> : null}
+                      {request.receiverBranch ? <Detail label="Branch" value={request.receiverBranch} /> : null}
+                      {request.receiverRoutingNumber ? <Detail label="Routing number" value={request.receiverRoutingNumber} /> : null}
                       {request.trxId ? <Detail label="Transaction ref" value={request.trxId} /> : null}
                       {request.paymentSourceMasked ? <Detail label="Payment source" value={request.paymentSourceMasked} /> : null}
                       {request.paymentCardholderName ? <Detail label="Cardholder" value={request.paymentCardholderName} /> : null}

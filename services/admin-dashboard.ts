@@ -53,9 +53,10 @@ export async function reviewAdminRequest(input: {
   const walletRef = doc(db, 'users', input.uid, 'wallet', 'summary');
 
   return runTransaction(db, async (transaction) => {
-    const [rootSnapshot, userSnapshot] = await Promise.all([
+    const [rootSnapshot, userSnapshot, walletSnapshot] = await Promise.all([
       transaction.get(rootRequestRef),
       transaction.get(userRequestRef),
+      transaction.get(walletRef),
     ]);
     if (!rootSnapshot.exists() || !userSnapshot.exists()) throw new Error('Transaction request not found.');
 
@@ -80,6 +81,10 @@ export async function reviewAdminRequest(input: {
     if (approved) {
       const balanceImpact = Number(userRequest.balanceImpact);
       if (!Number.isFinite(balanceImpact)) throw new Error('Invalid wallet balance impact.');
+      if (userRequest.type === 'bank_transfer' && balanceImpact < 0 &&
+        (Number(walletSnapshot.data()?.balance) || 0) < Math.abs(balanceImpact)) {
+        throw new Error('Insufficient wallet balance for bank transfer.');
+      }
       transaction.set(walletRef, {
         balance: increment(balanceImpact),
         monthlyUsed: balanceImpact < 0 ? increment(Math.abs(balanceImpact)) : increment(0),

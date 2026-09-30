@@ -16,7 +16,7 @@ import {
 import { db } from '@/services/firebase';
 import { verifySavedCardPaymentPin } from '@/services/saved-payment-methods';
 
-export type WalletTransactionType = 'add_balance' | 'send_money' | 'cash_out' | 'mobile_recharge' | 'bill_payment' | 'system';
+export type WalletTransactionType = 'add_balance' | 'send_money' | 'bank_transfer' | 'cash_out' | 'mobile_recharge' | 'bill_payment' | 'system';
 export type WalletTransactionStatus = 'pending' | 'done' | 'failed' | 'rejected';
 export type WalletTransactionDirection = 'in' | 'out' | 'neutral';
 
@@ -49,6 +49,9 @@ export type WalletTransaction = {
   receiverName?: string;
   receiverPhone?: string;
   receiverAccount?: string;
+  receiverBankName?: string;
+  receiverBranch?: string;
+  receiverRoutingNumber?: string;
   billingId?: string;
   billerCategory?: string;
   billDate?: string;
@@ -72,6 +75,7 @@ export function getBanglaTransactionTitle(transaction: WalletTransaction) {
   switch (transaction.type) {
     case 'add_balance': return `${transaction.method || 'কার্ড'} দিয়ে ব্যালেন্স যোগ`;
     case 'send_money': return `${transaction.receiverName || 'প্রাপক'}কে টাকা পাঠানো`;
+    case 'bank_transfer': return `${transaction.receiverBankName || 'ব্যাংক'}-এ টাকা পাঠানো`;
     case 'cash_out': return `${transaction.method || 'ওয়ালেট'} থেকে ক্যাশ আউট`;
     case 'mobile_recharge': return `${transaction.method || 'মোবাইল'} রিচার্জ`;
     case 'bill_payment': return `${transaction.method || 'সেবা'} বিল পরিশোধ`;
@@ -119,6 +123,17 @@ type CreateSendMoneyRequestInput = {
   receiverPhone: string;
   amount: number;
   bonus?: number;
+  note?: string;
+};
+
+type CreateBankTransferRequestInput = {
+  uid: string;
+  receiverName: string;
+  receiverBankName: string;
+  receiverAccount: string;
+  receiverBranch?: string;
+  receiverRoutingNumber?: string;
+  amount: number;
   note?: string;
 };
 
@@ -261,6 +276,9 @@ function mapWalletTransaction(id: string, data: DocumentData): WalletTransaction
     receiverName: data.receiverName,
     receiverPhone: data.receiverPhone,
     receiverAccount: data.receiverAccount,
+    receiverBankName: data.receiverBankName,
+    receiverBranch: data.receiverBranch,
+    receiverRoutingNumber: data.receiverRoutingNumber,
     billingId: data.billingId,
     billerCategory: data.billerCategory,
     billDate: data.billDate,
@@ -426,6 +444,45 @@ export async function createSendMoneyRequest(input: CreateSendMoneyRequestInput)
     createdAtText: 'এইমাত্র',
   };
 
+  await writeTransactionRequest(transaction);
+  return transaction;
+}
+
+export async function createBankTransferRequest(input: CreateBankTransferRequestInput) {
+  const receiverName = input.receiverName.trim();
+  const receiverBankName = input.receiverBankName.trim();
+  const receiverAccount = input.receiverAccount.replace(/\s/g, '');
+  const receiverRoutingNumber = input.receiverRoutingNumber?.trim();
+  if (!input.uid || !receiverName || !receiverBankName || !/^\d{6,24}$/.test(receiverAccount) ||
+    (receiverRoutingNumber && !/^\d{9}$/.test(receiverRoutingNumber)) ||
+    !Number.isFinite(input.amount) || input.amount <= 0 || Math.round(input.amount * 100) !== input.amount * 100) {
+    throw new Error('Invalid bank transfer details.');
+  }
+  const { requestId, transactionRef } = getTransactionIdentity(input.uid, 'BANK');
+  const transaction: WalletTransaction = {
+    id: transactionRef.id,
+    requestId,
+    uid: input.uid,
+    type: 'bank_transfer',
+    title: `Bank transfer to ${receiverName}`,
+    method: receiverBankName,
+    amount: input.amount,
+    fee: 0,
+    bonus: 0,
+    totalDebit: input.amount,
+    currency: 'BDT',
+    status: 'pending',
+    direction: 'out',
+    balanceImpact: -input.amount,
+    balanceApplied: false,
+    receiverName,
+    receiverBankName,
+    receiverAccount,
+    receiverBranch: input.receiverBranch?.trim(),
+    receiverRoutingNumber,
+    note: input.note?.trim(),
+    createdAtText: 'এইমাত্র',
+  };
   await writeTransactionRequest(transaction);
   return transaction;
 }

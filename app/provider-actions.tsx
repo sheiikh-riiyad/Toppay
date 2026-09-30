@@ -18,12 +18,14 @@ export default function ProviderActionsScreen() {
   const params = useLocalSearchParams<{ provider?: string }>();
   const provider = Object.prototype.hasOwnProperty.call(providers, params.provider ?? '') ? params.provider as keyof typeof providers : 'bKash';
   const brand = providers[provider];
-  const actions: { label: string; icon: WalletIconName; route: Href; disabled?: boolean; hint?: string }[] = [
-    { label: 'home.sendMoney', icon: 'send', route: { pathname: '/send-money', params: { provider } }, disabled: provider === 'Bank', hint: provider === 'Bank' ? 'providerActions.mobileOnly' : undefined },
-    { label: 'home.cashOut', icon: 'payments', route: { pathname: '/cash-out', params: { provider } } },
-    { label: 'providerActions.payment', icon: 'receipt-long', route: '/bill-pay', hint: 'providerActions.paymentHint' },
-    { label: 'home.addBalance', icon: 'add-card', route: { pathname: '/add-balance', params: { provider } } },
-  ];
+  const actions: { label: string; icon: WalletIconName; route: Href; disabled?: boolean; hint?: string }[] = provider === 'Bank'
+    ? [{ label: 'bankTransfer.title', icon: 'account-balance', route: '/bank-transfer' }]
+    : [
+        { label: 'home.sendMoney', icon: 'send', route: { pathname: '/send-money', params: { provider } } },
+        { label: 'home.cashOut', icon: 'payments', route: { pathname: '/cash-out', params: { provider } } },
+        { label: 'providerActions.payment', icon: 'receipt-long', route: '/bill-pay', hint: 'providerActions.paymentHint' },
+        { label: 'home.addBalance', icon: 'add-card', route: { pathname: '/add-balance', params: { provider } } },
+      ];
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <View style={styles.header}>

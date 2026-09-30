@@ -58,6 +58,7 @@ function RootNavigator() {
       <Stack.Protected guard={unlocked}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="send-money" />
+      <Stack.Screen name="bank-transfer" />
       <Stack.Screen name="cash-out" />
       <Stack.Screen name="cash-out-confirmation" />
       <Stack.Screen name="cash-out-submitted" />
