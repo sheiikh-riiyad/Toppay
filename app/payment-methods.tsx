@@ -3,8 +3,8 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  ActivityIndicator, Alert, BackHandler, Keyboard, KeyboardAvoidingView, Platform,
-  Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps,
+    ActivityIndicator, Alert, BackHandler, Keyboard, KeyboardAvoidingView, Platform,
+    Pressable, ScrollView, StyleSheet, Text, TextInput, View, type TextInputProps,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -12,8 +12,8 @@ import { palette } from '@/constants/toppay';
 import { useAuth } from '@/contexts/auth';
 import { useSavedPaymentMethods } from '@/hooks/use-saved-payment-methods';
 import {
-  deleteSavedPaymentMethod, saveBankPaymentMethod, saveCardPaymentMethod,
-  type SavedPaymentMethodKind
+    deleteSavedPaymentMethod, saveBankPaymentMethod, saveCardPaymentMethod,
+    type SavedPaymentMethodKind
 } from '@/services/saved-payment-methods';
 
 function formatCardNumber(value: string) {
@@ -32,6 +32,7 @@ export default function PaymentMethodsScreen() {
   const [accountNumber, setAccountNumber] = useState('');
   const [branchName, setBranchName] = useState('');
   const [cardholderName, setCardholderName] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [cardNumber, setCardNumber] = useState('');
   const [zipCode, setZipCode] = useState('');
   const [expiryMonth, setExpiryMonth] = useState('');
@@ -50,6 +51,8 @@ export default function PaymentMethodsScreen() {
   const expiryMonthNumber = Number(expiryMonth);
   const canSaveCard = Boolean(
     cardholderName.trim()
+      && phoneNumber.replace(/\D/g, '').length >= 7
+      && phoneNumber.replace(/\D/g, '').length <= 15
       && zipCode.trim()
       && cardDigits.length >= 12 && cardDigits.length <= 19
       && expiryMonthNumber >= 1 && expiryMonthNumber <= 12
@@ -63,6 +66,7 @@ export default function PaymentMethodsScreen() {
     setAccountNumber('');
     setBranchName('');
     setCardholderName('');
+    setPhoneNumber('');
     setCardNumber('');
     setZipCode('');
     setExpiryMonth('');
@@ -103,7 +107,7 @@ export default function PaymentMethodsScreen() {
     setFormError('');
     try {
       if (isCard) {
-        await saveCardPaymentMethod(account.uid, { cardNumber, cardholderName, expiryMonth, expiryYear, zipCode });
+        await saveCardPaymentMethod(account.uid, { cardNumber, cardholderName, phoneNumber, expiryMonth, expiryYear, zipCode });
       } else {
         await saveBankPaymentMethod(account.uid, { accountHolderName, accountNumber, bankName, branchName });
       }
@@ -184,8 +188,9 @@ export default function PaymentMethodsScreen() {
               {isCard ? (
                 <>
                   <Field label={t('paymentMethods.cardholderName')} value={cardholderName} onChangeText={setCardholderName} autoCapitalize="words" editable={!isSaving} />
+                  <Field label={t('paymentMethods.phoneNumber')} value={phoneNumber} onChangeText={(value) => setPhoneNumber(value.replace(/[^\d+]/g, '').replace(/(?!^)\+/g, '').slice(0, 16))} keyboardType="phone-pad" maxLength={16} autoComplete="tel" editable={!isSaving} />
                   <Field label={t('paymentMethods.cardNumber')} value={cardNumber} onChangeText={(value) => setCardNumber(formatCardNumber(value))} keyboardType="number-pad" maxLength={23} editable={!isSaving} />
-                  <Field label="CVV" value={zipCode} onChangeText={(value) => setZipCode(value.replace(/\s+/g, '').slice(0, 20))} placeholder="পোস্টাল কোড" autoCapitalize="characters" editable={!isSaving} />
+                  <Field label={t('paymentMethods.zipCode')} value={zipCode} onChangeText={(value) => setZipCode(value.replace(/\s+/g, '').slice(0, 20))} autoCapitalize="characters" editable={!isSaving} />
                   <Text style={styles.fieldLabel}>{t('paymentMethods.expiryDate')}</Text>
                   <View style={styles.expiryRow}>
                     <Field compact label={t('paymentMethods.expiryMonth')} value={expiryMonth} onChangeText={(value) => setExpiryMonth(value.replace(/\D/g, '').slice(0, 2))} keyboardType="number-pad" maxLength={2} editable={!isSaving} />

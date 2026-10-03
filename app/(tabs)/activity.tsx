@@ -1,8 +1,8 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/contexts/auth';
@@ -10,7 +10,6 @@ import { useWalletData } from '@/hooks/use-wallet-data';
 import {
   formatCurrency,
   palette,
-  transactions as sampleTransactions,
   type Transaction,
   type WalletIconName,
 } from '@/constants/toppay';
@@ -24,8 +23,13 @@ const filters: { key: ActivityFilter; labelKey: string }[] = [
   { key: 'cashOut', labelKey: 'filterMoneyOut' },
 ];
 
-const cashInTypes: WalletTransaction['type'][] = ['add_balance'];
-const cashOutTypes: WalletTransaction['type'][] = ['send_money', 'mobile_recharge', 'bill_payment', 'cash_out'];
+const cashOutTypes: WalletTransaction['type'][] = ['send_money', 'bank_transfer', 'mobile_recharge', 'bill_payment', 'cash_out'];
+
+function activityDirection(transaction: WalletTransaction) {
+  if (transaction.type === 'add_balance') return 'in';
+  if (cashOutTypes.includes(transaction.type)) return 'out';
+  return transaction.direction;
+}
 
 function getTransactionIcon(transaction: WalletTransaction) {
   if (transaction.type === 'add_balance') {
@@ -47,6 +51,14 @@ function getTransactionIcon(transaction: WalletTransaction) {
   if (transaction.type === 'cash_out') {
     return {
       icon: 'payments' as const,
+      color: palette.coral,
+      tone: palette.softCoral,
+    };
+  }
+
+  if (transaction.type === 'bank_transfer') {
+    return {
+      icon: 'account-balance' as const,
       color: palette.coral,
       tone: palette.softCoral,
     };
@@ -77,7 +89,7 @@ function getTransactionIcon(transaction: WalletTransaction) {
 
 function toActivityTransaction(transaction: WalletTransaction): Transaction {
   const icon = getTransactionIcon(transaction);
-  const signedAmount = transaction.direction === 'out'
+  const signedAmount = activityDirection(transaction) === 'out'
     ? -Math.abs(transaction.totalDebit || transaction.amount)
     : Math.abs(transaction.amount);
 
@@ -86,7 +98,9 @@ function toActivityTransaction(transaction: WalletTransaction): Transaction {
     title: getBanglaTransactionTitle(transaction),
     meta: transaction.method || transaction.note || 'ওয়ালেট লেনদেন',
     amount: signedAmount,
-    status: 'Completed',
+    status: transaction.status === 'done' ? 'Completed'
+      : transaction.status === 'pending' ? 'Pending'
+        : transaction.status === 'rejected' ? 'Rejected' : 'Failed',
     time: transaction.createdAtText,
     ...icon,
   };
@@ -97,43 +111,31 @@ export default function ActivityScreen() {
   const { t } = useTranslation();
   const { account } = useAuth();
   const [activeFilter, setActiveFilter] = useState<ActivityFilter>('all');
-  const { doneTransactions } = useWalletData(account?.uid);
-  const sourceTransactions = doneTransactions
+  const [search, setSearch] = useState('');
+  const { transactions: walletTransactions, isTransactionsLoading, error } = useWalletData(account?.uid);
+  const sourceTransactions = walletTransactions
     .filter((transaction) => transaction.type !== 'system')
     .filter((transaction) => {
       if (activeFilter === 'cashIn') {
-        return cashInTypes.includes(transaction.type);
+        return activityDirection(transaction) === 'in';
       }
 
       if (activeFilter === 'cashOut') {
-        return cashOutTypes.includes(transaction.type);
+        return activityDirection(transaction) === 'out';
       }
 
       return true;
+    })
+    .map(toActivityTransaction)
+    .filter((transaction) => {
+      const term = search.trim().toLocaleLowerCase();
+      return !term || `${transaction.title} ${transaction.meta} ${transaction.id}`.toLocaleLowerCase().includes(term);
     });
-  const firebaseTransactions = sourceTransactions.map(toActivityTransaction);
-  const sampleCompletedTransactions = useMemo(
-    () => sampleTransactions.filter((transaction) => transaction.status === 'Completed'),
-    []
-  );
-  const sampleFilteredTransactions = sampleCompletedTransactions.filter((transaction) => {
-    if (activeFilter === 'cashIn') {
-      return transaction.amount > 0;
-    }
-
-    if (activeFilter === 'cashOut') {
-      return transaction.amount < 0;
-    }
-
-    return true;
-  });
-  const transactions = doneTransactions.length > 0
-    ? firebaseTransactions
-    : sampleFilteredTransactions;
-  const moneyIn = transactions
+  const completedTransactions = sourceTransactions.filter((transaction) => transaction.status === 'Completed');
+  const moneyIn = completedTransactions
     .filter((transaction) => transaction.amount > 0)
     .reduce((total, transaction) => total + transaction.amount, 0);
-  const moneyOut = transactions
+  const moneyOut = completedTransactions
     .filter((transaction) => transaction.amount < 0)
     .reduce((total, transaction) => total + Math.abs(transaction.amount), 0);
 
@@ -175,6 +177,8 @@ export default function ActivityScreen() {
           <TextInput
             placeholder={t('activityPage.searchTransactions')}
             placeholderTextColor={palette.muted}
+            value={search}
+            onChangeText={setSearch}
             style={styles.searchInput}
           />
         </View>
@@ -198,10 +202,14 @@ export default function ActivityScreen() {
         </View>
 
         <View style={styles.transactionList}>
-          {transactions.length === 0 ? (
+          {isTransactionsLoading ? (
+            <ActivityIndicator color={palette.primary} />
+          ) : error && walletTransactions.length === 0 ? (
+            <Text style={styles.emptyText}>{t('activityPage.loadFailed')}</Text>
+          ) : sourceTransactions.length === 0 ? (
             <Text style={styles.emptyText}>{t('activityPage.noFilteredTransactions')}</Text>
           ) : (
-            transactions.map((transaction) => (
+            sourceTransactions.map((transaction) => (
               <ActivityRow key={transaction.id} transaction={transaction} />
             ))
           )}
@@ -264,14 +272,8 @@ function ActivityRow({ transaction }: { transaction: Transaction }) {
 
 function StatusPill({ status }: { status: Transaction['status'] }) {
   const { t } = useTranslation();
-  const tone =
-    status === 'Completed'
-      ? palette.softPrimary
-      : status === 'Pending'
-        ? palette.softAmber
-        : palette.softCoral;
-  const color =
-    status === 'Completed' ? palette.primary : status === 'Pending' ? palette.amber : palette.danger;
+  const tone = status === 'Completed' ? palette.softPrimary : status === 'Pending' ? palette.softAmber : palette.softCoral;
+  const color = status === 'Completed' ? palette.primary : status === 'Pending' ? palette.amber : palette.danger;
 
   return (
     <View style={[styles.statusPill, { backgroundColor: tone }]}>

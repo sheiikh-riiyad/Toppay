@@ -130,7 +130,7 @@ export default function AdminDashboard({ email }: { email: string }) {
               <Text style={styles.subtitle}>Review incoming wallet activity and account requests.</Text>
             </View>
             <View style={styles.overviewActions}>
-              <Pressable style={styles.usersButton} onPress={() => router.push('/admin-users')} accessibilityRole="button">
+              <Pressable style={styles.usersButton} onPress={() => router.push('/admin')} accessibilityRole="button">
                 <MaterialIcons name="people-outline" size={19} color={palette.primary} />
                 <Text style={styles.usersButtonText}>Users</Text>
               </Pressable>

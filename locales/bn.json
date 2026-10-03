@@ -523,7 +523,8 @@
   "statuses": {
     "completed": "সম্পন্ন",
     "pending": "পেন্ডিং",
-    "failed": "ব্যর্থ"
+    "failed": "ব্যর্থ",
+    "rejected": "বাতিল"
   },
   "activityPage": {
     "kicker": "ওয়ালেট অ্যাক্টিভিটি",
@@ -534,7 +535,8 @@
     "filterAll": "সব",
     "filterMoneyIn": "টাকা এসেছে",
     "filterMoneyOut": "টাকা গেছে",
-    "noFilteredTransactions": "এই ফিল্টারে কোনো লেনদেন পাওয়া যায়নি।"
+    "noFilteredTransactions": "এই ফিল্টারে কোনো লেনদেন পাওয়া যায়নি।",
+    "loadFailed": "লেনদেন লোড করা যায়নি। ইন্টারনেট সংযোগ দেখে আবার চেষ্টা করুন।"
   },
   "scanPage": {
     "kicker": "মার্চেন্ট চেকআউট",
@@ -601,7 +603,9 @@
     "accountNumber": "অ্যাকাউন্ট নম্বর",
     "branchNameOptional": "ব্রাঞ্চের নাম (ঐচ্ছিক)",
     "cardholderName": "কার্ডহোল্ডারের নাম",
+    "phoneNumber": "ফোন নম্বর",
     "cardNumber": "কার্ড নম্বর",
+    "zipCode": "CVV",
     "expiryMonth": "MM",
     "expiryYear": "YYYY",
     "saveBank": "ব্যাংক অ্যাকাউন্ট সংরক্ষণ",

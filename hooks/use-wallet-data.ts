@@ -11,6 +11,7 @@ export function useWalletData(uid?: string) {
   const [summary, setSummary] = useState<WalletSummary | null>(null);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
   const [isLoading, setIsLoading] = useState(Boolean(uid));
+  const [isTransactionsLoading, setIsTransactionsLoading] = useState(Boolean(uid));
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
@@ -18,22 +19,28 @@ export function useWalletData(uid?: string) {
       setSummary(null);
       setTransactions([]);
       setIsLoading(false);
+      setIsTransactionsLoading(false);
       setError(null);
       return;
     }
 
     setIsLoading(true);
+    setIsTransactionsLoading(true);
     setError(null);
 
     const handleError = (nextError: Error) => {
       setError(nextError);
       setIsLoading(false);
+      setIsTransactionsLoading(false);
     };
     const unsubscribeSummary = listenWalletSummary(uid, (nextSummary) => {
       setSummary(nextSummary);
       setIsLoading(false);
     }, handleError);
-    const unsubscribeTransactions = listenUserTransactions(uid, setTransactions, handleError);
+    const unsubscribeTransactions = listenUserTransactions(uid, (nextTransactions) => {
+      setTransactions(nextTransactions);
+      setIsTransactionsLoading(false);
+    }, handleError);
 
     return () => {
       unsubscribeSummary();
@@ -49,9 +56,10 @@ export function useWalletData(uid?: string) {
       doneTransactions,
       error,
       isLoading,
+      isTransactionsLoading,
       pendingTransactions,
       summary,
       transactions,
     };
-  }, [error, isLoading, summary, transactions]);
+  }, [error, isLoading, isTransactionsLoading, summary, transactions]);
 }

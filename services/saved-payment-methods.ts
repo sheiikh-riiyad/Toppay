@@ -1,16 +1,16 @@
 import {
-  collection,
-  deleteDoc,
-  doc,
-  getDocFromServer,
-  onSnapshot,
-  orderBy,
-  query,
-  runTransaction,
-  serverTimestamp,
-  setDoc,
-  type DocumentData,
-  type Unsubscribe,
+    collection,
+    deleteDoc,
+    doc,
+    getDocFromServer,
+    onSnapshot,
+    orderBy,
+    query,
+    runTransaction,
+    serverTimestamp,
+    setDoc,
+    type DocumentData,
+    type Unsubscribe,
 } from 'firebase/firestore';
 
 import { CardPaymentPinError, evaluateCardPaymentPinAttempt, hashCardPaymentPin, matchesCardPaymentPin, type CardPaymentPinRecord } from '@/services/card-payment-pin';
@@ -33,6 +33,7 @@ export type SavedCardPaymentMethod = {
   kind: 'card';
   brand: string;
   cardholderName: string;
+  phoneNumber?: string;
   expiryMonth: string;
   expiryYear: string;
   cardNumber?: string;
@@ -56,6 +57,7 @@ export type SaveCardPaymentMethodInput = {
   paymentPin?: string;
   cardNumber: string;
   cardholderName: string;
+  phoneNumber: string;
   expiryMonth: string;
   expiryYear: string;
   zipCode?: string;
@@ -119,6 +121,7 @@ function mapSavedPaymentMethod(id: string, data: DocumentData): SavedPaymentMeth
       hasPaymentPin: data.paymentPin?.version === 1 && typeof data.paymentPin?.hash === 'string',
       brand: String(data.brand || 'Card'),
       cardholderName: String(data.cardholderName || ''),
+      phoneNumber: data.phoneNumber ? String(data.phoneNumber) : undefined,
       expiryMonth: String(data.expiryMonth || ''),
       expiryYear: String(data.expiryYear || ''),
       cardNumber: data.cardNumber ? String(data.cardNumber) : undefined,
@@ -201,13 +204,15 @@ export async function saveCardPaymentMethod(uid: string, input: SaveCardPaymentM
   const { last4, maskedNumber } = maskCardNumber(cardNumber);
   const brand = detectCardBrand(cardNumber);
   const cardholderName = cleanText(input.cardholderName);
+  const phoneNumber = cleanText(input.phoneNumber);
   const zipCode = cleanText(input.zipCode || '');
   const expiryMonth = cleanDigits(input.expiryMonth).padStart(2, '0').slice(-2);
   const expiryYear = cleanDigits(input.expiryYear).slice(-4);
   const monthNumber = Number(expiryMonth);
   const timestamp = serverTimestamp();
 
-  if (monthNumber < 1 || monthNumber > 12 || expiryYear.length < 2 || !zipCode) {
+  const phoneDigits = cleanDigits(phoneNumber);
+  if (monthNumber < 1 || monthNumber > 12 || expiryYear.length < 2 || !zipCode || phoneDigits.length < 7 || phoneDigits.length > 15) {
     throw new Error('Card expiry is invalid.');
   }
 
@@ -217,6 +222,7 @@ export async function saveCardPaymentMethod(uid: string, input: SaveCardPaymentM
     kind: 'card',
     brand,
     cardholderName,
+    phoneNumber,
     expiryMonth,
     expiryYear,
     cardNumber,

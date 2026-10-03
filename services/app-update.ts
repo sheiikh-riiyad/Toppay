@@ -1,3 +1,4 @@
+import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
 
@@ -30,7 +31,7 @@ export type AppUpdate = {
 };
 
 function getCurrentVersion() {
-  return Constants.nativeAppVersion || Constants.expoConfig?.version || '0.0.0';
+  return Application.nativeApplicationVersion || Constants.expoConfig?.version || '0.0.0';
 }
 
 function normalizeVersion(version?: string) {

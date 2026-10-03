@@ -2,7 +2,7 @@
   "expo": {
     "name": "Toppay",
     "slug": "toppay-official",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./logo.png",
     "scheme": "toppay",
@@ -18,7 +18,7 @@
     "android": {
       "package": "com.toppay.app",
       "googleServicesFile": "./google-services.json",
-      "versionCode": 6,
+      "versionCode": 9,
       "permissions": [
         "READ_CONTACTS",
         "REQUEST_INSTALL_PACKAGES"
@@ -48,7 +48,7 @@
           }
         }
       ],
-      "@react-native-google-signin/google-signin",
+      "@react-native-google-signin/google-signin/app.plugin.js",
       "expo-web-browser"
     ],
     "experiments": {

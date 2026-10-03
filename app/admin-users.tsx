@@ -1,11 +1,13 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { Redirect, useRouter } from 'expo-router';
+import { signOut } from 'firebase/auth';
 import type { DocumentData, QueryDocumentSnapshot } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { palette } from '@/constants/toppay';
+import { auth } from '@/services/firebase';
 import { listAdminUsers, verifyCurrentAdmin, type AdminUserSummary } from '@/services/admin-users';
 
 export default function AdminUsersScreen() {
@@ -71,8 +73,8 @@ export default function AdminUsersScreen() {
       <ScrollView contentContainerStyle={styles.page} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         <View style={styles.shell}>
           <View style={styles.header}>
-            <Pressable style={styles.backButton} onPress={() => router.replace('/admin')} accessibilityRole="button" accessibilityLabel="Back to dashboard">
-              <MaterialIcons name="arrow-back" size={21} color={palette.primary} />
+            <Pressable style={styles.backButton} onPress={() => router.push('/admin-requests')} accessibilityRole="button" accessibilityLabel="Review requests">
+              <MaterialIcons name="receipt-long" size={21} color={palette.primary} />
             </Pressable>
             <View style={styles.headerCopy}>
               <Text style={styles.eyebrow}>TOPPAY ADMIN</Text>
@@ -81,7 +83,11 @@ export default function AdminUsersScreen() {
             <View style={styles.countBadge}><Text style={styles.count}>{users.length}{cursor ? '+' : ''}</Text></View>
           </View>
 
-          <Text style={styles.subtitle}>Browse customer accounts</Text>
+          <Text style={styles.subtitle}>Browse customer accounts and open a user to see their details.</Text>
+          <View style={styles.navRow}>
+            <Pressable style={styles.navButton} onPress={() => router.push('/admin-requests')} accessibilityRole="button"><Text style={styles.navButtonText}>Review requests</Text></Pressable>
+            <Pressable style={styles.navButton} onPress={() => { void signOut(auth).then(() => router.replace('/admin-login')); }} accessibilityRole="button"><Text style={styles.navButtonText}>Sign out</Text></Pressable>
+          </View>
           <View style={styles.searchBox}>
             <MaterialIcons name="search" size={21} color={palette.muted} />
             <TextInput style={styles.searchInput} value={search} onChangeText={setSearch} placeholder="Search name, email, or user ID" placeholderTextColor={palette.muted} autoCapitalize="none" accessibilityLabel="Search users" />
@@ -140,6 +146,9 @@ const styles = StyleSheet.create({
   countBadge: { minWidth: 42, height: 34, paddingHorizontal: 9, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: '#DFF0E8' },
   count: { color: '#285F49', fontSize: 13, fontWeight: '800' },
   subtitle: { color: palette.muted, fontSize: 13 },
+  navRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
+  navButton: { minHeight: 40, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 8, borderWidth: 1, borderColor: palette.border, backgroundColor: palette.surface },
+  navButtonText: { color: palette.primary, fontWeight: '700', fontSize: 13 },
   searchBox: { minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 13, borderWidth: 1, borderColor: palette.border, borderRadius: 8, backgroundColor: palette.surface },
   searchInput: { flex: 1, minWidth: 0, color: palette.ink, fontSize: 14, paddingVertical: 10 },
   error: { color: palette.danger, backgroundColor: '#FCE9E7', borderRadius: 8, padding: 12, fontSize: 12 },

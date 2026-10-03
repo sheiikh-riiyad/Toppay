@@ -35,7 +35,7 @@ export type Transaction = {
   title: string;
   meta: string;
   amount: number;
-  status: 'Completed' | 'Pending' | 'Failed';
+  status: 'Completed' | 'Pending' | 'Failed' | 'Rejected';
   time: string;
   icon: WalletIconName;
   color: string;

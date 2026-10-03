@@ -1,4 +1,5 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import * as Application from 'expo-application';
 import Constants from 'expo-constants';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -48,7 +49,7 @@ function getCurrentDevice(t: (key: string) => string): Device {
     icon: type === 'web' ? 'desktop-mac' : 'smartphone',
     lastAccessed: t('deviceManagement.justNow'),
     platform: getPlatformLabel(),
-    appVersion: Constants.expoConfig?.version || Constants.nativeAppVersion || '1.0.0',
+    appVersion: Application.nativeApplicationVersion || Constants.expoConfig?.version || '1.0.0',
     appBuild: Constants.appOwnership || t('deviceManagement.installedApp'),
     isCurrent: true,
   };

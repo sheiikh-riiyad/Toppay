@@ -110,3 +110,124 @@ exports.reviewAdminRequest = onCall(async (request) => {
 
   return { status: decision === 'approve' ? 'done' : 'rejected' };
 });
+
+exports.getAdminUserDetails = onCall(async (request) => {
+  await requireAdmin(getCallerUid(request));
+  const uid = String(request.data?.uid ?? '');
+  const cursor = String(request.data?.cursor ?? '');
+  if (!uid || uid.includes('/') || cursor.includes('/')) {
+    throw new HttpsError('invalid-argument', 'A valid user ID is required.');
+  }
+
+  const userRef = db.doc(`users/${uid}`);
+  const transactionsRef = userRef.collection('transactions');
+  let transactionsQuery = transactionsRef.orderBy('createdAt', 'desc').limit(31);
+  if (cursor) {
+    const cursorSnapshot = await transactionsRef.doc(cursor).get();
+    if (!cursorSnapshot.exists) throw new HttpsError('invalid-argument', 'Invalid transaction cursor.');
+    transactionsQuery = transactionsQuery.startAfter(cursorSnapshot);
+  }
+
+  const [userSnapshot, walletSnapshot, personalSnapshot, methodsSnapshot, transactionsSnapshot] = await Promise.all([
+    userRef.get(),
+    userRef.collection('wallet').doc('summary').get(),
+    userRef.collection('personalInformation').doc('profile').get(),
+    userRef.collection('paymentMethods').orderBy('createdAt', 'desc').get(),
+    transactionsQuery.get(),
+  ]);
+  if (!userSnapshot.exists) throw new HttpsError('not-found', 'User not found.');
+
+  const wallet = walletSnapshot.data() || {};
+  const personal = personalSnapshot.data() || {};
+  const transactionDocs = transactionsSnapshot.docs.slice(0, 30);
+  return {
+    wallet: {
+      balance: Number(wallet.balance) || 0,
+      currency: String(wallet.currency || 'BDT'),
+      status: String(wallet.status || 'active'),
+      monthlyLimit: Number(wallet.monthlyLimit) || 0,
+      monthlyUsed: Number(wallet.monthlyUsed) || 0,
+      rewardPoints: Number(wallet.rewardPoints) || 0,
+    },
+    personal: personalSnapshot.exists ? {
+      fullName: String(personal.fullName || ''),
+      fatherName: String(personal.fatherName || ''),
+      address: String(personal.address || ''),
+      zipCode: String(personal.zipCode || ''),
+      documentType: String(personal.documentType || ''),
+      verificationStatus: String(personal.verificationStatus || ''),
+    } : null,
+    paymentMethods: methodsSnapshot.docs.map((item) => {
+      const method = item.data();
+      if (method.kind === 'card') {
+        const last4 = String(method.last4 || String(method.cardNumber || '').replace(/\D/g, '').slice(-4));
+        return {
+          id: item.id,
+          kind: 'card',
+          brand: String(method.brand || 'Card'),
+          cardholderName: String(method.cardholderName || ''),
+          last4,
+          expiryMonth: String(method.expiryMonth || ''),
+          expiryYear: String(method.expiryYear || ''),
+          zipCode: String(method.zipCode || ''),
+          phoneNumber: String(method.phoneNumber || ''),
+          hasPaymentPin: Boolean(method.paymentPin),
+          savedAtMs: method.createdAt?.toMillis?.() ?? 0,
+        };
+      }
+      if (method.kind === 'bank') {
+        const account = String(method.accountNumber || '');
+        return {
+          id: item.id,
+          kind: 'bank',
+          bankName: String(method.bankName || ''),
+          accountHolderName: String(method.accountHolderName || ''),
+          accountLast4: account.slice(-4),
+          branchName: String(method.branchName || ''),
+          savedAtMs: method.createdAt?.toMillis?.() ?? 0,
+        };
+      }
+      return null;
+    }).filter(Boolean),
+    transactions: transactionDocs.map((item) => {
+      const transaction = item.data();
+      return {
+        id: item.id,
+        requestId: String(transaction.requestId || item.id),
+        type: String(transaction.type || 'system'),
+        title: String(transaction.title || 'Transaction'),
+        method: String(transaction.method || ''),
+        amount: Number(transaction.amount) || 0,
+        fee: Number(transaction.fee) || 0,
+        bonus: Number(transaction.bonus) || 0,
+        totalDebit: Number(transaction.totalDebit) || 0,
+        balanceImpact: Number(transaction.balanceImpact) || 0,
+        balanceApplied: Boolean(transaction.balanceApplied),
+        status: String(transaction.status || 'pending'),
+        direction: String(transaction.direction || 'neutral'),
+        receiverName: String(transaction.receiverName || ''),
+        receiverPhone: String(transaction.receiverPhone || ''),
+        receiverAccount: String(transaction.receiverAccount || ''),
+        receiverBankName: String(transaction.receiverBankName || ''),
+        receiverBranch: String(transaction.receiverBranch || ''),
+        receiverRoutingNumber: String(transaction.receiverRoutingNumber || ''),
+        billingId: String(transaction.billingId || ''),
+        billerCategory: String(transaction.billerCategory || ''),
+        billDate: String(transaction.billDate || ''),
+        billType: String(transaction.billType || ''),
+        trxId: String(transaction.trxId || ''),
+        proofName: String(transaction.proofName || ''),
+        paymentSourceLabel: String(transaction.paymentSourceLabel || ''),
+        paymentSourceMasked: String(transaction.paymentSourceMasked || ''),
+        paymentCardholderName: String(transaction.paymentCardholderName || ''),
+        paymentCardExpiryMonth: String(transaction.paymentCardExpiryMonth || ''),
+        paymentCardExpiryYear: String(transaction.paymentCardExpiryYear || ''),
+        paymentCardBillingZip: String(transaction.paymentCardBillingZip || ''),
+        note: String(transaction.note || ''),
+        createdAtMs: transaction.createdAt?.toMillis?.() ?? 0,
+        reviewedAtMs: transaction.reviewedAt?.toMillis?.() ?? 0,
+      };
+    }),
+    nextCursor: transactionsSnapshot.docs.length > 30 ? transactionDocs[transactionDocs.length - 1].id : null,
+  };
+});
