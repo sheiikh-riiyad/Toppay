@@ -2,9 +2,9 @@ import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useIsFocused } from '@react-navigation/native';
 import { type Href, useRouter } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Animated, Easing, Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import WalletMiniLogo from '@/components/WalletMiniLogo';
@@ -37,11 +37,38 @@ export default function HomeScreen() {
   const { account } = useAuth();
   const { summary, pendingTransactions, isLoading, error } = useWalletData(account?.uid);
   const [balanceVisible, setBalanceVisible] = useState(false);
+  const [balanceButtonWidth, setBalanceButtonWidth] = useState(0);
+  const balanceProgress = useRef(new Animated.Value(0)).current;
   const [expanded, setExpanded] = useState(false);
   const [searchVisible, setSearchVisible] = useState(false);
   const [query, setQuery] = useState('');
   const filteredServices = services.filter(service => t(service.label).toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
   const visibleServices = query.trim() ? filteredServices : services.slice(0, expanded ? services.length : 8);
+  const badgePosition = balanceProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, Math.max(0, balanceButtonWidth - 38)],
+  });
+
+  useEffect(() => {
+    if (!balanceVisible) return;
+    const timeout = setTimeout(() => setBalanceVisible(false), 7000);
+    return () => clearTimeout(timeout);
+  }, [balanceVisible]);
+
+  useEffect(() => {
+    if (!isFocused) setBalanceVisible(false);
+  }, [isFocused]);
+
+  useEffect(() => {
+    const animation = Animated.timing(balanceProgress, {
+      toValue: balanceVisible ? 1 : 0,
+      duration: 420,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: true,
+    });
+    animation.start();
+    return () => animation.stop();
+  }, [balanceProgress, balanceVisible]);
 
   function ServiceButton({ service, quick = false }: { service: HomeService; quick?: boolean }) {
     return (
@@ -81,12 +108,13 @@ export default function HomeScreen() {
             </Pressable>
             <View style={styles.profileCopy}>
               <Text style={styles.name} numberOfLines={1}>{account?.name || 'Toppay'}</Text>
-              <Pressable style={styles.balanceButton} onPress={() => setBalanceVisible(value => !value)} accessibilityRole="button"
+              <Pressable style={styles.balanceButton} onLayout={(event) => setBalanceButtonWidth(event.nativeEvent.layout.width)} onPress={() => setBalanceVisible(value => !value)} accessibilityRole="button"
                 accessibilityLabel={balanceVisible ? t('homeDesign.hideBalance') : t('homeDesign.showBalance')}>
-                <View style={styles.currencyBadge}><Text style={styles.currencyText}>৳</Text></View>
-                <Text style={styles.balanceText} numberOfLines={1}>
-                  {balanceVisible ? (isLoading ? t('common.loading') : error || !summary ? t('homeDesign.balanceUnavailable') : formatCurrency(summary.balance).replace('৳', '')) : t('homeDesign.showBalance')}
-                </Text>
+                <Animated.View style={[styles.currencyBadge, { transform: [{ translateX: badgePosition }] }]}><Text style={styles.currencyText}>৳</Text></Animated.View>
+                <Animated.Text style={[styles.balanceText, styles.balanceTextHidden, { opacity: balanceProgress.interpolate({ inputRange: [0, 1], outputRange: [1, 0] }) }]} numberOfLines={1}>{t('homeDesign.showBalance')}</Animated.Text>
+                <Animated.Text style={[styles.balanceText, styles.balanceTextVisible, { opacity: balanceProgress }]} numberOfLines={1}>
+                  {isLoading ? t('common.loading') : error || !summary ? t('homeDesign.balanceUnavailable') : formatCurrency(summary.balance).replace('৳', '')}
+                </Animated.Text>
               </Pressable>
             </View>
             <Pressable style={styles.headerButton} onPress={() => { setSearchVisible(value => !value); setQuery(''); }} accessibilityRole="button" accessibilityLabel={t('common.search')} accessibilityState={{ expanded: searchVisible }}>
@@ -172,10 +200,12 @@ const styles = StyleSheet.create({
   avatarText: { color: palette.primary, fontSize: 20, fontWeight: '600' },
   profileCopy: { flex: 1, gap: 7 },
   name: { color: '#FFFFFF', fontSize: 16, fontWeight: '500' },
-  balanceButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderRadius: 24, padding: 4, gap: 7, alignSelf: 'flex-start', maxWidth: '100%', minHeight: 32 },
-  currencyBadge: { width: 24, height: 24, borderRadius: 12, backgroundColor: palette.primary, alignItems: 'center', justifyContent: 'center' },
-  currencyText: { color: '#FFFFFF', fontSize: 17 },
-  balanceText: { color: '#555555', fontSize: 11, paddingRight: 9, flexShrink: 1 },
+  balanceButton: { width: '100%', height: 38, backgroundColor: '#FFFFFF', borderRadius: 24, overflow: 'hidden', justifyContent: 'center' },
+  currencyBadge: { position: 'absolute', left: 4, width: 30, height: 30, borderRadius: 15, backgroundColor: palette.primary, alignItems: 'center', justifyContent: 'center', zIndex: 1 },
+  currencyText: { color: '#FFFFFF', fontSize: 19 },
+  balanceText: { position: 'absolute', left: 0, right: 0, color: '#555555', textAlign: 'center' },
+  balanceTextHidden: { paddingLeft: 38, paddingRight: 6, fontSize: 14, fontWeight: '600' },
+  balanceTextVisible: { paddingLeft: 6, paddingRight: 38, fontSize: 17, fontWeight: '700' },
   headerButton: { width: 42, height: 42, borderRadius: 21, backgroundColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   headerOutlineButton: { width: 42, height: 42, borderRadius: 21, borderWidth: 1, borderColor: '#FFFFFF', alignItems: 'center', justifyContent: 'center' },
   badge: { position: 'absolute', right: -3, top: -5, backgroundColor: '#FFFFFF', minWidth: 18, height: 18, borderRadius: 9, alignItems: 'center', justifyContent: 'center' },

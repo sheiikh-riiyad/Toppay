@@ -11,6 +11,7 @@ import { AuthProvider, useAuth } from '@/contexts/auth';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import '@/i18n';
 import { auth } from '@/services/firebase';
+import { registerNotificationUploadTask } from '@/services/notification-background-task';
 import { hasNotificationAccess, openNotificationAccessSettings, setNotificationOwner, syncCapturedNotifications } from '@/services/notification-listener';
 
 export const unstable_settings = {
@@ -63,12 +64,14 @@ function NotificationAccessGate({ children }: { children: React.ReactNode }) {
         const allowed = await hasNotificationAccess();
         if (!mounted) return;
         setAccess(allowed);
+        setError('');
         if (!allowed && openIfDenied) await openNotificationAccessSettings();
-      } catch {
-        if (mounted) {
-          setAccess(false);
-          setError('এই build-এ নোটিফিকেশন লিসেনার নেই। নতুন Android debug build ইনস্টল করুন।');
-        }
+      } catch (cause) {
+        if (!mounted) return;
+        setAccess(false);
+        setError(cause instanceof Error && cause.message === 'NATIVE_NOTIFICATION_LISTENER_MISSING'
+          ? 'এই APK-তে নোটিফিকেশন লিসেনার নেই। নতুন Android build ইনস্টল করুন।'
+          : 'নোটিফিকেশন সেটিংস খোলা যায়নি। ফোনের Settings থেকে Notification access খুলুন।');
       }
     };
     void check(true);
@@ -81,13 +84,14 @@ function NotificationAccessGate({ children }: { children: React.ReactNode }) {
   if (access === true) return <>{children}</>;
   return (
     <View style={styles.accessGate}>
-      {access === null ? (
-        <ActivityIndicator size="large" color={palette.primary} />
-      ) : (
+      {access === null ? <ActivityIndicator size="large" color={palette.primary} /> : (
         <>
           <Text style={styles.accessTitle}>নোটিফিকেশন অ্যাক্সেস প্রয়োজন</Text>
           <Text style={styles.accessMessage}>
-            আপনার লেনদেন ট্র্যাক করার জন্য এই এপ এর নোটিফিকেশন এক্সেস প্রয়োজন
+            Toppay আপনার প্রতিটি ট্রানসাকশান প্রমান এর জন্য নোটিফিকেশন পারমিশন দিন 
+          </Text>
+          <Text style={styles.accessHelp}>
+            “Restricted setting” দেখালে ফোনের Settings → Apps → Toppay → ⋮ → Allow restricted settings চালু করুন। তারপর Notification access দিন।
           </Text>
           {!!error && <Text style={styles.accessError}>{error}</Text>}
           <Pressable style={styles.accessButton} onPress={() => openNotificationAccessSettings().catch(() => setError('নোটিফিকেশন সেটিংস খোলা যায়নি।'))} accessibilityRole="button">
@@ -147,44 +151,42 @@ function RootNavigator() {
   );
 }
 
+function AuthenticatedUpdatePrompt() {
+  const { isReady, isAuthenticated } = useAuth();
+  return isReady && isAuthenticated ? <AppUpdatePrompt /> : null;
+}
+
 function NotificationSync() {
   useEffect(() => {
     if (Platform.OS !== 'android') return;
+    registerNotificationUploadTask().catch((error) => console.warn('Notification background task registration failed', error));
     const sync = () => {
       const uid = auth.currentUser?.uid;
       setNotificationOwner(uid ?? null).catch((error) => console.warn('Notification owner update failed', error));
       if (uid) syncCapturedNotifications(uid).catch((error) => console.warn('Notification sync failed', error));
     };
     sync();
-    const authSubscription = auth.onAuthStateChanged(sync);
+    const unsubscribeAuth = auth.onAuthStateChanged(sync);
     const appSubscription = AppState.addEventListener('change', (state) => {
       if (state === 'active') sync();
     });
-    const timer = setInterval(() => { if (AppState.currentState === 'active') sync(); }, 10000);
+    const timer = setInterval(() => {
+      if (AppState.currentState === 'active') sync();
+    }, 10000);
     return () => {
       clearInterval(timer);
-      authSubscription();
+      unsubscribeAuth();
       appSubscription.remove();
     };
   }, []);
   return null;
 }
 
-function AuthenticatedUpdatePrompt() {
-  const { isReady, isAuthenticated } = useAuth();
-  return isReady && isAuthenticated ? <AppUpdatePrompt /> : null;
-}
-
 const styles = StyleSheet.create({
-  accessGate: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 28,
-    backgroundColor: palette.background,
-  },
+  accessGate: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 28, backgroundColor: palette.background },
   accessTitle: { color: palette.ink, fontSize: 22, fontWeight: '700', textAlign: 'center' },
   accessMessage: { color: palette.muted, fontSize: 15, lineHeight: 23, textAlign: 'center', marginTop: 12 },
+  accessHelp: { color: palette.ink, fontSize: 14, lineHeight: 21, textAlign: 'center', marginTop: 16 },
   accessError: { color: palette.danger, textAlign: 'center', marginTop: 12 },
   accessButton: { backgroundColor: palette.primary, borderRadius: 12, paddingHorizontal: 24, paddingVertical: 14, marginTop: 24 },
   accessButtonText: { color: '#fff', fontWeight: '700' },

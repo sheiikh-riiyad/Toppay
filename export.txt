@@ -1,0 +1,15 @@
+$env:TOPPAY_STORE_PASSWORD = Read-Host 'Keystore password'
+$env:TOPPAY_KEY_PASSWORD = Read-Host 'Key password'
+cd android
+.\gradlew.bat assembleRelease
+
+
+
+$store = Read-Host "Keystore password" -AsSecureString
+$key = Read-Host "Key password" -AsSecureString
+$env:TOPPAY_STORE_PASSWORD = [System.Net.NetworkCredential]::new('', $store).Password
+$env:TOPPAY_KEY_PASSWORD = [System.Net.NetworkCredential]::new('', $key).Password
+.\gradlew.bat assembleRelease
+
+
+npm.cmd run android -- --device RMX3151      

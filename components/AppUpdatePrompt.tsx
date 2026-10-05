@@ -1,11 +1,12 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Linking, Modal, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { palette } from '@/constants/toppay';
+import { useAuth } from '@/contexts/auth';
 import { checkForAppUpdate, type AppUpdate } from '@/services/app-update';
 
 const APK_MIME_TYPE = 'application/vnd.android.package-archive';
@@ -24,7 +25,8 @@ function getSafeApkFileName(update: AppUpdate) {
 
 export function AppUpdatePrompt() {
   const { t } = useTranslation();
-  const checkedRef = useRef(false);
+  const { account } = useAuth();
+  const uid = account?.uid;
   const [update, setUpdate] = useState<AppUpdate | null>(null);
   const [isDismissed, setIsDismissed] = useState(false);
   const [updateStage, setUpdateStage] = useState<UpdateStage>('idle');
@@ -33,14 +35,14 @@ export function AppUpdatePrompt() {
 
   useEffect(() => {
     let isMounted = true;
+    setUpdate(null);
+    setIsDismissed(false);
 
-    if (checkedRef.current) {
+    if (!uid) {
       return undefined;
     }
 
-    checkedRef.current = true;
-
-    checkForAppUpdate()
+    checkForAppUpdate(uid)
       .then((nextUpdate) => {
         if (isMounted) {
           setUpdate(nextUpdate);
@@ -53,7 +55,7 @@ export function AppUpdatePrompt() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [uid]);
 
   async function handleUpdateNow() {
     if (!update) {

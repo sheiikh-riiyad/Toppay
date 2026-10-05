@@ -1,15 +1,13 @@
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter, type Href } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { useEffect, useState } from 'react';
-import { Alert, AppState, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { formatCurrency, palette, type WalletIconName } from '@/constants/toppay';
 import { useAuth } from '@/contexts/auth';
 import { useSavedPaymentMethods } from '@/hooks/use-saved-payment-methods';
 import { useWalletData } from '@/hooks/use-wallet-data';
-import { hasNotificationAccess, openNotificationAccessSettings } from '@/services/notification-listener';
 
 type AccountRow = {
   color: string;
@@ -61,14 +59,6 @@ export default function ProfileScreen() {
   const { account, logout } = useAuth();
   const { bankAccounts, cards, isLoading: isLoadingMethods, error: methodsError } = useSavedPaymentMethods(account?.uid);
   const { summary } = useWalletData(account?.uid);
-  const [notificationAccess, setNotificationAccess] = useState(false);
-  useEffect(() => {
-    if (Platform.OS !== 'android') return;
-    const refresh = () => { hasNotificationAccess().then(setNotificationAccess).catch(() => setNotificationAccess(false)); };
-    refresh();
-    const subscription = AppState.addEventListener('change', (state) => { if (state === 'active') refresh(); });
-    return () => subscription.remove();
-  }, []);
   const profileName = account?.name || t('profilePage.defaultName');
   const profileEmail = account?.email || t('profilePage.noEmail');
   const profileInitials = account?.initials || 'TP';
@@ -171,24 +161,6 @@ export default function ProfileScreen() {
             </Pressable>
           ))}
         </View>
-
-        {Platform.OS === 'android' && (
-          <Pressable
-            style={styles.accountRow}
-            accessibilityRole="button"
-            onPress={() => Alert.alert(
-              'নোটিফিকেশন অ্যাক্সেস',
-              'পরীক্ষার জন্য Toppay অন্য অ্যাপের নোটিফিকেশনের নাম ও লেখা পড়ে আপনার Firestore অ্যাকাউন্টে সর্বশেষ ১০টি সংরক্ষণ করবে। সেটিংস থেকে যেকোনো সময় বন্ধ করতে পারবেন।',
-              [{ text: 'বাতিল', style: 'cancel' }, { text: 'সেটিংস খুলুন', onPress: () => openNotificationAccessSettings().catch(() => Alert.alert('সেটিংস খোলা যায়নি')) }],
-            )}>
-            <MaterialIcons name="notifications-active" size={22} color={palette.primary} />
-            <View style={styles.accountCopy}>
-              <Text style={styles.accountTitle}>নোটিফিকেশন পরীক্ষা</Text>
-              <Text style={styles.accountMeta}>{notificationAccess ? 'অ্যাক্সেস চালু আছে' : 'অ্যাক্সেস বন্ধ আছে'}</Text>
-            </View>
-            <MaterialIcons name="chevron-right" size={24} color={palette.muted} />
-          </Pressable>
-        )}
 
         <Pressable style={styles.logoutButton} onPress={handleSignOut} accessibilityRole="button">
           <MaterialIcons name="logout" size={20} color={palette.danger} />

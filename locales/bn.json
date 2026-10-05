@@ -87,8 +87,8 @@
     "switchLanguage": "ভাষা পরিবর্তন"
   },
   "homeDesign": {
-    "showBalance": "ব্যালেন্স দেখুন",
-    "hideBalance": "ব্যালেন্স লুকান",
+    "showBalance": "Balance Show",
+    "hideBalance": "Balance Hide",
     "balanceUnavailable": "ব্যালেন্স পাওয়া যাচ্ছে না",
     "paymentServices": "পেমেন্ট সেবা",
     "paymentHint": "আপনার পছন্দের মাধ্যমে টাকা যোগ করুন",

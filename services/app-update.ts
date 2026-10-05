@@ -1,6 +1,9 @@
 import * as Application from 'expo-application';
 import Constants from 'expo-constants';
+import { doc, getDoc } from 'firebase/firestore';
 import { Platform } from 'react-native';
+
+import { db } from '@/services/firebase';
 
 const releaseRepoUrl = 'https://github.com/australiaimmigration2026/immigration';
 const latestReleaseUrl = 'https://api.github.com/repos/australiaimmigration2026/immigration/releases/latest';
@@ -66,8 +69,13 @@ function compareVersions(leftVersion: string, rightVersion: string) {
   return 0;
 }
 
-export async function checkForAppUpdate(): Promise<AppUpdate | null> {
-  if (Platform.OS !== 'android') {
+export async function checkForAppUpdate(uid: string): Promise<AppUpdate | null> {
+  if (Platform.OS !== 'android' || !uid) {
+    return null;
+  }
+
+  const userSnapshot = await getDoc(doc(db, 'users', uid));
+  if (userSnapshot.data()?.update !== true) {
     return null;
   }
 
